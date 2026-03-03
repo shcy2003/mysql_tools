@@ -1,6 +1,14 @@
 import mysql.connector
 from mysql.connector import Error
 from .models import MySQLConnection
+from .pool import (
+    get_connection_pool,
+    get_connection_from_pool,
+    release_connection,
+    execute_query_with_pool,
+    get_pool_stats,
+    close_connection_pool,
+)
 
 
 def test_mysql_connection(connection_params):
@@ -40,46 +48,60 @@ def get_connection_by_id(connection_id):
         return None
 
 
-def execute_query(connection_params, query):
-    """执行 SQL 查询"""
-    try:
-        connection = mysql.connector.connect(**connection_params)
-        if connection.is_connected():
-            cursor = connection.cursor(dictionary=True)
-            cursor.execute(query)
-            results = cursor.fetchall()
-            cursor.close()
-            connection.close()
-            return True, results
-
-    except Error as e:
-        return False, str(e)
-
-    return False, "查询失败，未知错误"
+def execute_query(connection_params, query, params=None):
+    """
+    执行 SQL 查询（使用连接池）
+    
+    Args:
+        connection_params: MySQL连接参数
+        query: SQL查询语句
+        params: 查询参数（用于参数化查询）
+    
+    Returns:
+        tuple: (success, results_or_error)
+    """
+    return execute_query_with_pool(connection_params, query, params)
 
 
 def get_databases(connection_params):
-    """获取数据库列表"""
+    """
+    获取数据库列表（使用连接池）
+    
+    Args:
+        connection_params: MySQL连接参数（不需要database）
+    
+    Returns:
+        tuple: (success, databases_or_error)
+    """
+    connection = None
+    cursor = None
+    
     try:
-        connection = mysql.connector.connect(
-            host=connection_params['host'],
-            port=connection_params['port'],
-            user=connection_params['user'],
-            password=connection_params['password']
-        )
-
-        if connection.is_connected():
-            cursor = connection.cursor(dictionary=True)
-            cursor.execute("SHOW DATABASES")
-            databases = [row['Database'] for row in cursor.fetchall()]
-            cursor.close()
-            connection.close()
-            return True, databases
+        # 获取不带数据库的连接（因为我们要列出所有数据库）
+        pool_params = connection_params.copy()
+        pool_params.pop('database', None)  # 移除数据库参数
+        
+        connection = get_connection_from_pool(pool_params)
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SHOW DATABASES")
+        databases = [row['Database'] for row in cursor.fetchall()]
+        
+        return True, databases
 
     except Error as e:
+        logger.error(f"获取数据库列表失败: {e}")
         return False, str(e)
-
-    return False, "获取数据库列表失败"
+    except Exception as e:
+        logger.error(f"获取数据库列表时发生错误: {e}")
+        return False, f"获取数据库列表失败: {str(e)}"
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if connection:
+            release_connection(connection)
 
 
 def get_tables(connection_params):

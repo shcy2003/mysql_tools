@@ -277,3 +277,157 @@ def api_query_data(request):
             "code": 500,
             "message": f"服务器内部错误: {str(e)}"
         }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_execute_query(request):
+    """
+    执行 SQL 查询（仅支持 SELECT，限制返回10条）
+    
+    POST /api/queries/execute/
+    
+    请求体:
+    {
+        "connection_id": 1,
+        "sql": "SELECT * FROM users WHERE age > 18"
+    }
+    
+    响应:
+    {
+        "code": 0,
+        "message": "success",
+        "data": {
+            "columns": ["id", "name", "email", "age"],
+            "rows": [...],
+            "row_count": 2,
+            "execution_time_ms": 15.23,
+            "limited": false
+        }
+    }
+    """
+    try:
+        # 解析请求体
+        data = json.loads(request.body)
+        connection_id = data.get('connection_id')
+        sql = data.get('sql', '').strip()
+        
+        # 验证必需参数
+        if not connection_id:
+            return JsonResponse({
+                "code": 400,
+                "message": "缺少必需参数: connection_id"
+            }, status=400)
+        
+        if not sql:
+            return JsonResponse({
+                "code": 400,
+                "message": "缺少必需参数: sql"
+            }, status=400)
+        
+        # 只允许 SELECT 查询
+        sql_upper = sql.upper()
+        if not sql_upper.startswith('SELECT'):
+            return JsonResponse({
+                "code": 400,
+                "message": "只允许执行 SELECT 查询"
+            }, status=400)
+        
+        # 检查危险关键字（简单防护）
+        dangerous_keywords = ['DELETE', 'DROP', 'TRUNCATE', 'INSERT', 'UPDATE', 'ALTER']
+        for keyword in dangerous_keywords:
+            if keyword in sql_upper and keyword not in sql_upper.split('FROM')[0].split('WHERE')[0]:
+                # 更严格的检查：确保关键字不是列名的一部分
+                import re
+                pattern = r'\b' + keyword + r'\b'
+                if re.search(pattern, sql_upper):
+                    return JsonResponse({
+                        "code": 400,
+                        "message": f"检测到危险关键字: {keyword}"
+                    }, status=400)
+        
+        # 获取连接并检查权限
+        try:
+            if request.user.role == 'admin':
+                connection = MySQLConnection.objects.get(id=connection_id)
+            else:
+                connection = MySQLConnection.objects.get(
+                    id=connection_id, 
+                    created_by=request.user
+                )
+        except MySQLConnection.DoesNotExist:
+            return JsonResponse({
+                "code": 404,
+                "message": "连接不存在或无权限访问"
+            }, status=404)
+        
+        # 执行查询
+        import time
+        start_time = time.time()
+        
+        try:
+            from connections.pool import get_connection_from_pool, release_connection
+            
+            connection_params = connection.get_connection_params()
+            conn = get_connection_from_pool(connection_params)
+            cursor = conn.cursor(dictionary=True)
+            
+            # 添加 LIMIT 10 限制（如果原查询没有 LIMIT）
+            limited_sql = sql
+            if 'LIMIT' not in sql_upper:
+                limited_sql = f"{sql} LIMIT 10"
+                limited = True
+            else:
+                limited = False
+            
+            cursor.execute(limited_sql)
+            rows = cursor.fetchall()
+            
+            # 获取列名
+            columns = [desc[0] for desc in cursor.description] if cursor.description else []
+            
+            cursor.close()
+            release_connection(conn)
+            
+            execution_time = (time.time() - start_time) * 1000
+            
+            # 记录查询历史（异步，失败不影响结果）
+            try:
+                from queries.models import QueryHistory
+                QueryHistory.objects.create(
+                    user=request.user,
+                    connection=connection,
+                    sql=sql
+                )
+            except Exception:
+                pass
+            
+            return JsonResponse({
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "columns": columns,
+                    "rows": rows,
+                    "row_count": len(rows),
+                    "execution_time_ms": round(execution_time, 2),
+                    "limited": limited
+                }
+            })
+            
+        except mysql.connector.Error as e:
+            execution_time = (time.time() - start_time) * 1000
+            return JsonResponse({
+                "code": 500,
+                "message": f"数据库查询错误: {str(e)}"
+            }, status=500)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            "code": 400,
+            "message": "JSON格式错误"
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            "code": 500,
+            "message": f"服务器内部错误: {str(e)}"
+        }, status=500)
