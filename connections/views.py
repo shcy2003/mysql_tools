@@ -47,7 +47,7 @@ def connection_create_view(request):
             )
 
             messages.success(request, '连接创建成功！')
-            return redirect('connection_list')
+            return redirect('connections:connection_list')
     else:
         form = MySQLConnectionForm()
 
@@ -62,7 +62,7 @@ def connection_edit_view(request, connection_id):
     # 检查权限：只有管理员或创建者可以编辑
     if request.user.role != 'admin' and connection.created_by != request.user:
         messages.error(request, '您没有权限编辑此连接！')
-        return redirect('connection_list')
+        return redirect('connections:connection_list')
 
     if request.method == 'POST':
         form = MySQLConnectionForm(request.POST, instance=connection)
@@ -86,7 +86,7 @@ def connection_edit_view(request, connection_id):
             )
 
             messages.success(request, '连接更新成功！')
-            return redirect('connection_list')
+            return redirect('connections:connection_list')
     else:
         form = MySQLConnectionForm(instance=connection)
 
@@ -101,7 +101,7 @@ def connection_delete_view(request, connection_id):
     # 检查权限：只有管理员或创建者可以删除
     if request.user.role != 'admin' and connection.created_by != request.user:
         messages.error(request, '您没有权限删除此连接！')
-        return redirect('connection_list')
+        return redirect('connections:connection_list')
 
     if request.method == 'POST':
         # 添加审计日志
@@ -115,7 +115,7 @@ def connection_delete_view(request, connection_id):
 
         connection.delete()
         messages.success(request, '连接删除成功！')
-        return redirect('connection_list')
+        return redirect('connections:connection_list')
 
     return render(request, 'connections/delete.html', {'connection': connection})
 
@@ -128,7 +128,7 @@ def connection_test_view(request, connection_id):
     # 检查权限：只有管理员或创建者可以测试连接
     if request.user.role != 'admin' and connection.created_by != request.user:
         messages.error(request, '您没有权限测试此连接！')
-        return redirect('connection_list')
+        return redirect('connections:connection_list')
 
     success, message = test_mysql_connection(
         connection.get_connection_params())
@@ -138,7 +138,7 @@ def connection_test_view(request, connection_id):
     else:
         messages.error(request, message)
 
-    return redirect('connection_list')
+    return redirect('connections:connection_list')
 
 
 # ==================== API 视图 ====================

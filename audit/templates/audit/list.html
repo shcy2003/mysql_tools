@@ -77,7 +77,7 @@
                                             <button type="submit" class="btn btn-primary">
                                                 <i class="bi bi-search"></i> 搜索
                                             </button>
-                                            <a href="{% url 'audit_list' %}" class="btn btn-secondary">
+                                            <a href="{% url 'audit:audit_list' %}" class="btn btn-secondary">
                                                 <i class="bi bi-arrow-clockwise"></i> 重置
                                             </a>
                                         </div>
@@ -176,7 +176,7 @@
         if (end_date) params.push(`end_date=${end_date}`);
 
         const queryString = params.length > 0 ? '?' + params.join('&') : '';
-        window.location.href = '{% url 'audit_list' %}' + queryString;
+        window.location.href = '{% url 'audit:audit_list' %}' + queryString;
     });
 </script>
 {% endblock %}

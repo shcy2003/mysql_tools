@@ -12,7 +12,7 @@
                 <h5 class="mb-0">
                     <i class="bi bi-shield-lock"></i> 脱敏规则列表
                 </h5>
-                <a href="{% url 'masking_rule_create' %}" class="btn btn-light btn-sm">
+                <a href="{% url 'desensitization:masking_rule_create' %}" class="btn btn-light btn-sm">
                     <i class="bi bi-plus-circle"></i> 创建规则
                 </a>
             </div>
@@ -57,10 +57,10 @@
                                         </td>
                                         <td>{{ rule.created_at|date:"Y-m-d H:i:s" }}</td>
                                         <td>
-                                            <a href="{% url 'masking_rule_edit' rule.id %}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="编辑">
+                                            <a href="{% url 'desensitization:masking_rule_edit' rule.id %}" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" title="编辑">
                                                 <i class="bi bi-pencil"></i>
                                             </a>
-                                            <a href="{% url 'masking_rule_delete' rule.id %}" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="删除">
+                                            <a href="{% url 'desensitization:masking_rule_delete' rule.id %}" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" data-bs-placement="top" title="删除">
                                                 <i class="bi bi-trash"></i>
                                             </a>
                                         </td>
@@ -73,7 +73,7 @@
                     <div class="text-center">
                         <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc; margin-bottom: 20px;"></i>
                         <p class="text-muted">您当前没有设置任何脱敏规则。</p>
-                        <a href="{% url 'masking_rule_create' %}" class="btn btn-primary">
+                        <a href="{% url 'desensitization:masking_rule_create' %}" class="btn btn-primary">
                             <i class="bi bi-plus-circle"></i> 创建规则
                         </a>
                     </div>

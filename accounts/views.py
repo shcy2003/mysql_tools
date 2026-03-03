@@ -60,7 +60,7 @@ def logout_view(request):
 
     logout(request)
     messages.success(request, '已成功登出！')
-    return redirect('login')
+    return redirect('accounts:login')
 
 
 @login_required

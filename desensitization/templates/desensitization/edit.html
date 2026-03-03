@@ -73,10 +73,10 @@
                             <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="bi bi-save"></i> 保存规则
                             </button>
-                            <a href="{% url 'masking_rule_list' %}" class="btn btn-secondary btn-lg">
+                            <a href="{% url 'desensitization:masking_rule_list' %}" class="btn btn-secondary btn-lg">
                                 <i class="bi bi-arrow-left"></i> 取消
                             </a>
-                            <a href="{% url 'masking_rule_delete' form.instance.pk %}" class="btn btn-danger btn-lg">
+                            <a href="{% url 'desensitization:masking_rule_delete' form.instance.pk %}" class="btn btn-danger btn-lg">
                                 <i class="bi bi-trash"></i> 删除规则
                             </a>
                         </div>

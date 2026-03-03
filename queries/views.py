@@ -31,7 +31,7 @@ def sql_query_view(request):
         # 检查权限：只有管理员或创建者可以使用此连接查询
         if request.user.role != 'admin' and connection.created_by != request.user:
             messages.error(request, '您没有权限使用此连接！')
-            return redirect('sql_query')
+            return redirect('queries:sql_query')
 
         success, result, execution_time = run_query(
             connection, sql, request.user, request)

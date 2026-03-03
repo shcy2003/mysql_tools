@@ -39,7 +39,7 @@ def masking_rule_create_view(request):
             )
 
             messages.success(request, '脱敏规则创建成功！')
-            return redirect('masking_rule_list')
+            return redirect('desensitization:masking_rule_list')
     else:
         form = MaskingRuleForm()
 
@@ -69,7 +69,7 @@ def masking_rule_edit_view(request, rule_id):
             )
 
             messages.success(request, '脱敏规则更新成功！')
-            return redirect('masking_rule_list')
+            return redirect('desensitization:masking_rule_list')
     else:
         form = MaskingRuleForm(instance=rule)
 
@@ -96,6 +96,6 @@ def masking_rule_delete_view(request, rule_id):
 
         rule.delete()
         messages.success(request, '脱敏规则删除成功！')
-        return redirect('masking_rule_list')
+        return redirect('desensitization:masking_rule_list')
 
     return render(request, 'desensitization/delete.html', {'rule': rule})
