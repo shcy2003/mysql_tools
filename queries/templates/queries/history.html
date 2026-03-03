@@ -42,7 +42,7 @@
                                             <a href="#" class="btn btn-sm btn-outline-primary" onclick="copySQL('{{ forloop.counter }}')" data-bs-toggle="tooltip" data-bs-placement="top" title="复制 SQL">
                                                 <i class="bi bi-copy"></i>
                                             </a>
-                                            <a href="{% url 'sql_query' %}?sql={{ query.sql|urlencode }}&connection={{ query.connection.id }}" class="btn btn-sm btn-outline-success" data-bs-toggle="tooltip" data-bs-placement="top" title="重新执行">
+                                            <a href="{% url 'queries:sql_query' %}?sql={{ query.sql|urlencode }}&connection={{ query.connection.id }}" class="btn btn-sm btn-outline-success" data-bs-toggle="tooltip" data-bs-placement="top" title="重新执行">
                                                 <i class="bi bi-arrow-clockwise"></i>
                                             </a>
                                         </td>
@@ -55,10 +55,10 @@
                     <div class="text-center">
                         <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc; margin-bottom: 20px;"></i>
                         <p class="text-muted">您还没有查询历史记录</p>
-                        <a href="{% url 'sql_query' %}" class="btn btn-primary">
+                        <a href="{% url 'queries:sql_query' %}" class="btn btn-primary">
                             <i class="bi bi-code-square"></i> 开始 SQL 查询
                         </a>
-                        <a href="{% url 'visual_query' %}" class="btn btn-success ml-2">
+                        <a href="{% url 'queries:sql_query_new' %}" class="btn btn-success ml-2">
                             <i class="bi bi-grid-3x3-gap"></i> 开始可视化查询
                         </a>
                     </div>
