@@ -1,16 +1,14 @@
 """
-连接模块API路由配置
+Connections API URL 配置
 """
 from django.urls import path
-from . import api_views
-
-app_name = 'connections_api'
+from . import views
 
 urlpatterns = [
-    # 获取连接树
-    path('tree/', api_views.api_connection_tree, name='api_connection_tree'),
-    # 获取数据库列表
-    path('<int:connection_id>/databases/', api_views.api_connection_databases, name='api_connection_databases'),
-    # 获取表列表
-    path('<int:connection_id>/tables/', api_views.api_connection_tables, name='api_connection_tables'),
+    # 连接树 API
+    path('tree/', views.api_connection_tree, name='api_connection_tree'),
+    # 数据库列表 API
+    path('<int:connection_id>/databases/', views.api_connection_databases, name='api_connection_databases'),
+    # 表列表 API
+    path('<int:connection_id>/tables/', views.api_connection_tables, name='api_connection_tables'),
 ]

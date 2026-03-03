@@ -139,3 +139,210 @@ def connection_test_view(request, connection_id):
         messages.error(request, message)
 
     return redirect('connection_list')
+
+
+# ==================== API 视图 ====================
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+import json
+
+
+def api_response(code=0, message='success', data=None):
+    """统一的 API 响应格式"""
+    return JsonResponse({
+        'code': code,
+        'message': message,
+        'data': data if data is not None else {}
+    })
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_connection_tree(request):
+    """
+    获取连接树 API
+    GET /api/connections/tree/
+    
+    返回当前用户的所有连接，以及每个连接下的数据库和表结构。
+    """
+    try:
+        # 获取用户可以访问的连接
+        if request.user.role == 'admin':
+            connections = MySQLConnection.objects.all()
+        else:
+            connections = MySQLConnection.objects.filter(created_by=request.user)
+
+        tree_data = []
+        for conn in connections:
+            conn_data = {
+                'id': conn.id,
+                'name': conn.name,
+                'host': conn.host,
+                'port': conn.port,
+                'databases': []
+            }
+            
+            # 尝试获取数据库列表
+            try:
+                from .utils import get_databases, get_tables
+                databases = get_databases(conn)
+                for db_name in databases:
+                    db_data = {
+                        'name': db_name,
+                        'tables': []
+                    }
+                    # 尝试获取表列表
+                    try:
+                        tables = get_tables(conn, db_name)
+                        db_data['tables'] = tables
+                    except Exception as e:
+                        # 获取表列表失败，继续
+                        pass
+                    conn_data['databases'].append(db_data)
+            except Exception as e:
+                # 获取数据库列表失败，继续
+                pass
+            
+            tree_data.append(conn_data)
+
+        return api_response(data=tree_data)
+
+    except Exception as e:
+        return api_response(code=500, message=f'获取连接树失败: {str(e)}')
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_connection_databases(request, connection_id):
+    """
+    获取指定连接的所有数据库
+    GET /api/connections/{id}/databases/
+    """
+    try:
+        connection = get_object_or_404(MySQLConnection, id=connection_id)
+        
+        # 检查权限
+        if request.user.role != 'admin' and connection.created_by != request.user:
+            return api_response(code=403, message='没有权限访问此连接')
+        
+        from .utils import get_databases
+        databases = get_databases(connection)
+        
+        return api_response(data=databases)
+    
+    except Exception as e:
+        return api_response(code=500, message=f'获取数据库列表失败: {str(e)}')
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_connection_tables(request, connection_id):
+    """
+    获取指定数据库的所有表
+    GET /api/connections/{id}/tables/?database=xxx
+    """
+    try:
+        database = request.GET.get('database')
+        if not database:
+            return api_response(code=400, message='缺少 database 参数')
+        
+        connection = get_object_or_404(MySQLConnection, id=connection_id)
+        
+        # 检查权限
+        if request.user.role != 'admin' and connection.created_by != request.user:
+            return api_response(code=403, message='没有权限访问此连接')
+        
+        from .utils import get_tables
+        tables = get_tables(connection, database)
+        
+        return api_response(data=tables)
+    
+    except Exception as e:
+        return api_response(code=500, message=f'获取表列表失败: {str(e)}')
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(['POST'])
+def api_query_execute(request):
+    """
+    执行 SQL 查询
+    POST /api/queries/execute/
+    
+    请求体:
+    {
+        "connection_id": 1,
+        "sql": "SELECT * FROM users WHERE age > 18"
+    }
+    
+    仅支持 SELECT 语句，最多返回 10 条记录。
+    """
+    try:
+        # 解析请求体
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return api_response(code=400, message='请求体必须是有效的 JSON')
+        
+        connection_id = body.get('connection_id')
+        sql = body.get('sql', '').strip()
+        
+        # 参数验证
+        if not connection_id:
+            return api_response(code=400, message='缺少 connection_id 参数')
+        if not sql:
+            return api_response(code=400, message='缺少 sql 参数')
+        
+        # 获取连接
+        try:
+            connection = MySQLConnection.objects.get(id=connection_id)
+        except MySQLConnection.DoesNotExist:
+            return api_response(code=404, message='连接不存在')
+        
+        # 检查权限
+        if request.user.role != 'admin' and connection.created_by != request.user:
+            return api_response(code=403, message='没有权限使用此连接')
+        
+        # 验证 SQL 语句（只允许 SELECT）
+        sql_upper = sql.upper().lstrip()
+        if not sql_upper.startswith('SELECT'):
+            return api_response(code=400, message='只允许执行 SELECT 查询')
+        
+        # 执行查询
+        from .utils import run_query
+        success, result, execution_time = run_query(connection, sql, request.user, request)
+        
+        if not success:
+            return api_response(code=400, message=f'查询执行失败: {result}')
+        
+        # 限制返回行数（最多10条）
+        row_count = len(result)
+        limited = False
+        if row_count > 10:
+            result = result[:10]
+            limited = true
+        
+        # 提取列名和行数据
+        columns = result[0].keys() if result else []
+        rows = []
+        for row in result:
+            row_data = {}
+            for col in columns:
+                row_data[col] = row[col]
+            rows.append(row_data)
+        
+        return api_response(data={
+            'columns': list(columns),
+            'rows': rows,
+            'row_count': row_count,
+            'execution_time_ms': execution_time,
+            'limited': limited
+        })
+    
+    except Exception as e:
+        import traceback
+        print(f"API执行查询出错: {str(e)}")
+        print(traceback.format_exc())
+        return api_response(code=500, message=f'服务器内部错误: {str(e)}')
