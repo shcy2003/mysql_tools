@@ -1,0 +1,56 @@
+<div class="sidebar border border-right col-md-3 col-lg-2 p-0 bg-body-tertiary">
+    <div class="offcanvas-md offcanvas-end bg-body-tertiary" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="sidebarMenuLabel">MySQL查询平台</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body d-md-flex flex-column p-0 pt-lg-3 overflow-y-auto">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link d-flex align-items-center gap-2 active" aria-current="page" href="{% url 'queries:query_list' %}">
+                        <i class="bi bi-house"></i>
+                        首页
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link d-flex align-items-center gap-2" href="{% url 'queries:sql_query' %}">
+                        <i class="bi bi-code-square"></i>
+                        SQL查询
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link d-flex align-items-center gap-2" href="{% url 'queries:visual_query' %}">
+                        <i class="bi bi-grid-3x3-gap"></i>
+                        可视化查询
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link d-flex align-items-center gap-2" href="{% url 'connections:connection_list' %}">
+                        <i class="bi bi-gear"></i>
+                        连接管理
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link d-flex align-items-center gap-2" href="{% url 'queries:query_history' %}">
+                        <i class="bi bi-clock-history"></i>
+                        查询历史
+                    </a>
+                </li>
+                {% if user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'desensitization:masking_rule_list' %}">
+                            <i class="bi bi-shield-lock"></i>
+                            脱敏规则管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'audit:audit_list' %}">
+                            <i class="bi bi-file-earmark-text"></i>
+                            审计日志
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</div>

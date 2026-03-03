@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %} - 删除连接{% endblock %}
+
+{% block page_title %}删除 MySQL 连接{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-trash"></i> 删除连接
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> 警告：此操作将永久删除连接 "{{ connection.name }}"，此操作不可恢复！
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">连接详情</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="card-text">
+                                    <strong>连接名称:</strong> {{ connection.name }}
+                                </p>
+                                <p class="card-text">
+                                    <strong>主机地址:</strong> {{ connection.host }}
+                                </p>
+                                <p class="card-text">
+                                    <strong>端口:</strong> {{ connection.port }}
+                                </p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="card-text">
+                                    <strong>数据库名:</strong> {{ connection.database }}
+                                </p>
+                                <p class="card-text">
+                                    <strong>用户名:</strong> {{ connection.username }}
+                                </p>
+                                <p class="card-text">
+                                    <strong>创建者:</strong> {{ connection.created_by.username }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="confirm" class="form-label">请确认删除操作</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="confirm" name="confirm" required>
+                                <label class="form-check-label" for="confirm">
+                                    我确定要删除此连接
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                <i class="bi bi-trash"></i> 确认删除
+                            </button>
+                            <a href="{% url 'connection_list' %}" class="btn btn-secondary btn-lg">
+                                <i class="bi bi-arrow-left"></i> 取消
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

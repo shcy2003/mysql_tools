@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %} - 用户信息{% endblock %}
+
+{% block page_title %}用户信息{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-person"></i> 用户详细信息
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">基础信息</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <strong>用户名:</strong> {{ user.username }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>用户类型:</strong>
+                                        {% if user.role == 'admin' %}
+                                            <span class="badge bg-danger">管理员</span>
+                                        {% else %}
+                                            <span class="badge bg-primary">普通用户</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>邮箱:</strong> {{ user.email|default_if_none:'' }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">登录信息</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <strong>上次登录时间:</strong> {{ user.last_login|date:"Y-m-d H:i:s" }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>上次登录IP:</strong> {{ user.last_login_ip|default:'-' }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>登录次数:</strong> {{ user.login_count }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">账号统计</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <strong>创建的连接数:</strong> {{ user.connections.count }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>查询历史数:</strong> {{ user.query_history.count }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>脱敏规则数:</strong> {{ user.masking_rules.count }}
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>审计日志数:</strong> {{ user.audit_logs.count }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
+                        <a href="{% url 'password_change' %}" class="btn btn-primary">
+                            <i class="bi bi-key"></i> 修改密码
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle"></i> 权限说明
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="permissions">
+                    {% if user.role == 'admin' %}
+                        <div class="accordion-item">
+                            <h6 class="accordion-header" id="headingAdmin">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#collapseAdmin" aria-expanded="true" aria-controls="collapseAdmin">
+                                    管理员权限
+                                </button>
+                            </h6>
+                            <div id="collapseAdmin" class="accordion-collapse collapse show"
+                                 aria-labelledby="headingAdmin" data-bs-parent="#permissions">
+                                <div class="accordion-body">
+                                    <ul class="list-unstyled">
+                                        <li><i class="bi bi-check-circle text-success"></i> 查询 MySQL 数据</li>
+                                        <li><i class="bi bi-check-circle text-success"></i> 创建和管理 MySQL 连接</li>
+                                        <li><i class="bi bi-check-circle text-success"></i> 创建和管理脱敏规则</li>
+                                        <li><i class="bi bi-check-circle text-success"></i> 查看审计日志</li>
+                                        <li><i class="bi bi-check-circle text-success"></i> 管理用户</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="accordion-item">
+                            <h6 class="accordion-header" id="headingUser">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#collapseUser" aria-expanded="true" aria-controls="collapseUser">
+                                    普通用户权限
+                                </button>
+                            </h6>
+                            <div id="collapseUser" class="accordion-collapse collapse show"
+                                 aria-labelledby="headingUser" data-bs-parent="#permissions">
+                                <div class="accordion-body">
+                                    <ul class="list-unstyled">
+                                        <li><i class="bi bi-check-circle text-success"></i> 查询 MySQL 数据</li>
+                                        <li><i class="bi bi-check-circle text-success"></i> 查看自己的查询历史</li>
+                                        <li><i class="bi bi-x-circle text-danger"></i> 管理 MySQL 连接</li>
+                                        <li><i class="bi bi-x-circle text-danger"></i> 创建和管理脱敏规则</li>
+                                        <li><i class="bi bi-x-circle text-danger"></i> 查看审计日志</li>
+                                        <li><i class="bi bi-x-circle text-danger"></i> 管理用户</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+
+{% block title %} - 登录{% endblock %}
+
+{% block page_title %}登录{% endblock %}
+
+{% block content %}
+<div class="login-page-wrapper">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <i class="bi bi-database"></i>
+                </div>
+                <h2 class="login-title">欢迎回来</h2>
+                <p class="login-subtitle">MySQL查询平台</p>
+            </div>
+            
+            <div class="login-body">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show animate-in" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="POST" class="login-form">
+                    {% csrf_token %}
+
+                    <div class="form-floating mb-3">
+                        <div class="input-group has-icon">
+                            <span class="input-icon">
+                                <i class="bi bi-person"></i>
+                            </span>
+                            {{ form.username }}
+                        </div>
+                        <label for="id_username" class="form-label">{{ form.username.label }}</label>
+                    </div>
+
+                    <div class="form-floating mb-4">
+                        <div class="input-group has-icon">
+                            <span class="input-icon">
+                                <i class="bi bi-key"></i>
+                            </span>
+                            {{ form.password }}
+                            <button type="button" class="password-toggle" tabindex="-1">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <label for="id_password" class="form-label">{{ form.password.label }}</label>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check remember-me">
+                            <input class="form-check-input" type="checkbox" id="rememberMe">
+                            <label class="form-check-label" for="rememberMe">
+                                记住我
+                            </label>
+                        </div>
+                        <a href="#" class="forgot-password">忘记密码？</a>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-login w-100">
+                        <span class="btn-text">登录</span>
+                        <span class="btn-loader" style="display: none;">
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            登录中...
+                        </span>
+                    </button>
+                </form>
+            </div>
+            
+            <div class="login-footer">
+                <p class="text-muted">
+                    <small>© 2026 MySQL查询平台 · 安全登录</small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* 登录页面整体布局 */
+.login-page-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    padding: 20px;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* 登录容器 */
+.login-container {
+    width: 100%;
+    max-width: 420px;
+    perspective: 1000px;
+}
+
+/* 登录卡片 */
+.login-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    animation: slideUpFade 0.8s ease-out;
+}
+
+@keyframes slideUpFade {
+    0% {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 登录头部 */
+.login-header {
+    text-align: center;
+    padding: 40px 30px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+    animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0%, 100% { transform: translateX(-100%) rotate(0deg); }
+    50% { transform: translateX(100%) rotate(180deg); }
+}
+
+.login-logo {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.login-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+}
+
+.login-subtitle {
+    font-size: 1rem;
+    opacity: 0.9;
+    position: relative;
+    z-index: 1;
+}
+
+/* 登录主体 */
+.login-body {
+    padding: 30px;
+}
+
+/* 表单样式 */
+.login-form {
+    animation: fadeIn 0.6s ease-out 0.3s both;
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+.form-floating {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.input-group.has-icon {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    z-index: 10;
+    font-size: 1.1rem;
+}
+
+.form-floating input {
+    width: 100%;
+    height: 56px;
+    padding: 1rem 1rem 0.5rem 45px;
+    font-size: 1rem;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+}
+
+.form-floating input:focus {
+    border-color: #667eea;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+    outline: none;
+}
+
+.form-floating label {
+    position: absolute;
+    left: 45px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    background: transparent;
+    padding: 0 5px;
+}
+
+.form-floating input:focus + label,
+.form-floating input:not(:placeholder-shown) + label {
+    top: 8px;
+    transform: translateY(0);
+    font-size: 0.75rem;
+    color: #667eea;
+    font-weight: 500;
+}
+
+/* 密码切换按钮 */
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.password-toggle:hover {
+    color: #667eea;
+    background-color: rgba(102, 126, 234, 0.1);
+}
+
+/* 记住我和忘记密码 */
+.remember-me .form-check-input {
+    border: 2px solid #d1d5db;
+    border-radius: 6px;
+    width: 1.2em;
+    height: 1.2em;
+    cursor: pointer;
+}
+
+.remember-me .form-check-input:checked {
+    background-color: #667eea;
+    border-color: #667eea;
+}
+
+.forgot-password {
+    color: #667eea;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.forgot-password:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+
+/* 登录按钮 */
+.btn-login {
+    height: 52px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-login::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.btn-login:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+}
+
+.btn-login:hover::before {
+    left: 100%;
+}
+
+.btn-login:active {
+    transform: translateY(0);
+}
+
+/* 消息提示动画 */
+.animate-in {
+    animation: slideInDown 0.5s ease-out;
+}
+
+@keyframes slideInDown {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 登录底部 */
+.login-footer {
+    padding: 20px 30px;
+    text-align: center;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    background-color: rgba(248, 249, 250, 0.5);
+}
+
+/* 响应式优化 */
+@media (max-width: 576px) {
+    .login-page-wrapper {
+        padding: 10px;
+    }
+    
+    .login-card {
+        border-radius: 16px;
+    }
+    
+    .login-header {
+        padding: 30px 20px 15px;
+    }
+    
+    .login-logo {
+        font-size: 2.5rem;
+    }
+    
+    .login-title {
+        font-size: 1.5rem;
+    }
+    
+    .login-body {
+        padding: 20px;
+    }
+    
+    .form-floating input {
+        height: 50px;
+    }
+    
+    .btn-login {
+        height: 48px;
+        font-size: 1rem;
+    }
+}
+
+/* 深色模式支持（预留） */
+@media (prefers-color-scheme: dark) {
+    /* 深色模式样式将在后续添加 */
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 密码可见性切换
+        const passwordToggle = document.querySelector('.password-toggle');
+        const passwordInput = document.getElementById('id_password');
+        
+        if (passwordToggle && passwordInput) {
+            passwordToggle.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                const icon = this.querySelector('i');
+                icon.classList.toggle('bi-eye');
+                icon.classList.toggle('bi-eye-slash');
+            });
+        }
+        
+        // 登录按钮加载状态
+        const loginForm = document.querySelector('.login-form');
+        const loginBtn = document.querySelector('.btn-login');
+        const btnText = loginBtn.querySelector('.btn-text');
+        const btnLoader = loginBtn.querySelector('.btn-loader');
+        
+        if (loginForm && loginBtn) {
+            loginForm.addEventListener('submit', function() {
+                btnText.style.display = 'none';
+                btnLoader.style.display = 'inline-block';
+                loginBtn.disabled = true;
+            });
+        }
+        
+        // 输入框聚焦动画
+        const inputs = document.querySelectorAll('.form-floating input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.closest('.form-floating').classList.add('focused');
+            });
+            
+            input.addEventListener('blur', function() {
+                this.closest('.form-floating').classList.remove('focused');
+            });
+        });
+    });
+</script>
+{% endblock %}

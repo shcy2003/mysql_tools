@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %} - 创建脱敏规则{% endblock %}
+
+{% block page_title %}创建脱敏规则{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle"></i> 创建脱敏规则
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="POST" id="masking-rule-form">
+                    {% csrf_token %}
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="connection" class="form-label">选择 MySQL 连接</label>
+                            <select class="form-select" id="connection" name="connection" onchange="loadTables()" required>
+                                <option value="">请选择连接</option>
+                                {% for connection in connections %}
+                                    <option value="{{ connection.id }}">{{ connection.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="table_name" class="form-label">表名</label>
+                            <input type="text" class="form-control" id="table_name" name="table_name"
+                                   placeholder="请输入表名" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="column_name" class="form-label">列名</label>
+                            <input type="text" class="form-control" id="column_name" name="column_name"
+                                   placeholder="请输入列名" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="masking_type" class="form-label">脱敏类型</label>
+                            <select class="form-select" id="masking_type" name="masking_type" onchange="toggleMaskingParams()">
+                                <option value="full">完全脱敏</option>
+                                <option value="partial">部分脱敏</option>
+                                <option value="regex">正则匹配</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3" id="masking-params-container">
+                        <div class="col-md-12">
+                            <label for="masking_params" class="form-label">脱敏参数 (JSON)</label>
+                            <textarea class="form-control" id="masking_params" name="masking_params" rows="3"
+                                      placeholder='{"keep_first":3,"keep_last":4}'></textarea>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-save"></i> 保存规则
+                            </button>
+                            <a href="{% url 'masking_rule_list' %}" class="btn btn-secondary btn-lg">
+                                <i class="bi bi-arrow-left"></i> 取消
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle"></i> 脱敏类型说明
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="maskingTypes">
+                    <div class="accordion-item">
+                        <h6 class="accordion-header" id="headingFull">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseFull" aria-expanded="true" aria-controls="collapseFull">
+                                完全脱敏
+                            </button>
+                        </h6>
+                        <div id="collapseFull" class="accordion-collapse collapse show"
+                             aria-labelledby="headingFull" data-bs-parent="#maskingTypes">
+                            <div class="accordion-body">
+                                <p>将整个字段值替换为相同长度的星号。</p>
+                                <p><strong>示例:</strong> 13812345678 → **********</p>
+                                <p><strong>参数:</strong> 无需参数</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h6 class="accordion-header" id="headingPartial">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapsePartial" aria-expanded="false" aria-controls="collapsePartial">
+                                部分脱敏
+                            </button>
+                        </h6>
+                        <div id="collapsePartial" class="accordion-collapse collapse"
+                             aria-labelledby="headingPartial" data-bs-parent="#maskingTypes">
+                            <div class="accordion-body">
+                                <p>保留前 N 个字符和后 M 个字符，中间替换为星号。</p>
+                                <p><strong>示例:</strong> 13812345678 → 138*****78</p>
+                                <p><strong>参数:</strong>
+                                    <code>{"keep_first":3,"keep_last":4}</code>
+                                </p>
+                                <p><strong>说明:</strong>
+                                    <ul>
+                                        <li><code>keep_first</code>: 保留前缀字符数</li>
+                                        <li><code>keep_last</code>: 保留后缀字符数</li>
+                                    </ul>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h6 class="accordion-header" id="headingRegex">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseRegex" aria-expanded="false" aria-controls="collapseRegex">
+                                正则匹配
+                            </button>
+                        </h6>
+                        <div id="collapseRegex" class="accordion-collapse collapse"
+                             aria-labelledby="headingRegex" data-bs-parent="#maskingTypes">
+                            <div class="accordion-body">
+                                <p>使用正则表达式匹配字段值，匹配到的内容替换为星号。</p>
+                                <p><strong>示例:</strong> 13812345678 → 138*****78</p>
+                                <p><strong>参数:</strong>
+                                    <code>{"pattern": "\\d{3}(\\d{4})\\d{4}","replace": "$1"}</code>
+                                </p>
+                                <p><strong>说明:</strong>
+                                    <ul>
+                                        <li><code>pattern</code>: 正则表达式</li>
+                                        <li><code>replace</code>: 替换格式（使用 $1 等引用分组）</li>
+                                    </ul>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleMaskingParams() {
+        const maskingType = $('#masking_type').val();
+        const paramsContainer = $('#masking-params-container');
+
+        switch (maskingType) {
+            case 'full':
+                paramsContainer.hide();
+                $('#masking_params').val('');
+                break;
+            case 'partial':
+                paramsContainer.show();
+                $('#masking_params').val('{"keep_first":3,"keep_last":4}');
+                break;
+            case 'regex':
+                paramsContainer.show();
+                $('#masking_params').val('{"pattern":"","replace":""}');
+                break;
+        }
+    }
+
+    $(document).ready(function() {
+        toggleMaskingParams();
+    });
+</script>
+{% endblock %}

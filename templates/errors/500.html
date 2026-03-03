@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %} - 服务器错误{% endblock %}
+
+{% block page_title %}服务器错误{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle-fill"></i> 服务器错误
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <i class="bi bi-server" style="font-size: 4rem; color: #6c757d; margin-bottom: 20px;"></i>
+                    <h4 class="mb-3">服务器错误 (500)</h4>
+                    <p class="mb-4">
+                        服务器遇到了内部错误或配置错误。
+                        请稍后重试，或联系系统管理员报告问题。
+                    </p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="{% url 'query_list' %}" class="btn btn-primary">
+                            <i class="bi bi-house"></i> 返回首页
+                        </a>
+                        <button class="btn btn-secondary" onclick="location.reload()">
+                            <i class="bi bi-arrow-clockwise"></i> 刷新页面
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

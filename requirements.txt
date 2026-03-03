@@ -1,0 +1,13 @@
+# Django
+Django==6.0.2
+asgiref==3.11.1
+sqlparse==0.5.5
+tzdata==2025.3
+
+# MySQL
+mysql-connector-python==9.1.0
+mysqlclient==2.2.8
+
+# Optional utilities
+python-decouple==3.8
+python-dotenv==1.2.2

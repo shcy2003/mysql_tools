@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %} - 首页{% endblock %}
+
+{% block page_title %}首页{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-info-circle"></i> 欢迎使用 MySQL 查询平台
+                </h4>
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    这是一个基于 Django 的 MySQL 数据查询平台，支持 SQL 查询、可视化查询构建器、
+                    数据列脱敏、用户权限管理和审计日志功能。
+                </p>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-start mt-4">
+                    <a href="{% url 'sql_query' %}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-code-square"></i> SQL 查询
+                    </a>
+                    <a href="{% url 'visual_query' %}" class="btn btn-success btn-lg">
+                        <i class="bi bi-grid-3x3-gap"></i> 可视化查询
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-gear"></i> 连接信息
+                </h4>
+            </div>
+            <div class="card-body">
+                {% if connections %}
+                    <p class="card-text mb-3">您当前可以使用以下 MySQL 连接：</p>
+                    <ul class="list-group list-group-flush">
+                        {% for connection in connections %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ connection.name }}</span>
+                                <span class="badge bg-success">
+                                    {{ connection.host }}:{{ connection.port }}/{{ connection.database }}
+                                </span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="card-text text-center">您当前没有可用的 MySQL 连接。</p>
+                    {% if user.role == 'admin' %}
+                        <div class="text-center mt-3">
+                            <a href="{% url 'connection_create' %}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> 创建连接
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="card-text text-center mt-2 text-muted">
+                            请联系管理员添加连接。
+                        </p>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0">
+                    <i class="bi bi-exclamation-triangle"></i> 使用说明
+                </h4>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">只允许执行 SELECT 查询</li>
+                    <li class="list-group-item">敏感字段会自动脱敏</li>
+                    <li class="list-group-item">查询历史会自动记录</li>
+                    <li class="list-group-item">查询会被记录到审计日志</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-shield-check"></i> 安全提示
+                </h4>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">不要分享连接配置信息</li>
+                    <li class="list-group-item">不要执行未知来源的 SQL</li>
+                    <li class="list-group-item">定期更新密码</li>
+                    <li class="list-group-item">如果发现异常立即联系管理员</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
