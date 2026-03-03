@@ -75,3 +75,9 @@ def get_available_connections(user):
         return MySQLConnection.objects.all()
     else:
         return MySQLConnection.objects.filter(created_by=user)
+
+
+@login_required
+def sql_query_new_view(request):
+    """新的 SQL 查询界面（支持连接树和 AJAX 查询）"""
+    return render(request, 'queries/sql_query_new.html', {})
