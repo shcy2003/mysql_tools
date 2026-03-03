@@ -187,7 +187,7 @@ def api_connection_tree(request):
             # 尝试获取数据库列表
             try:
                 from .utils import get_databases, get_tables
-                databases = get_databases(conn)
+                databases = get_databases(conn.get_connection_params())
                 for db_name in databases:
                     db_data = {
                         'name': db_name,
@@ -228,9 +228,11 @@ def api_connection_databases(request, connection_id):
             return api_response(code=403, message='没有权限访问此连接')
         
         from .utils import get_databases
-        databases = get_databases(connection)
-        
-        return api_response(data=databases)
+        try:
+            databases = get_databases(connection.get_connection_params())
+            return api_response(data=databases)
+        except Exception as e:
+            return api_response(code=500, message=f'获取数据库列表失败: {str(e)}')
     
     except Exception as e:
         return api_response(code=500, message=f'获取数据库列表失败: {str(e)}')

@@ -71,7 +71,10 @@ def get_databases(connection_params):
         connection_params: MySQL连接参数（不需要database）
     
     Returns:
-        tuple: (success, databases_or_error)
+        list: 数据库名称列表
+    
+    Raises:
+        Exception: 获取数据库列表失败时抛出异常
     """
     connection = None
     cursor = None
@@ -86,14 +89,14 @@ def get_databases(connection_params):
         cursor.execute("SHOW DATABASES")
         databases = [row['Database'] for row in cursor.fetchall()]
         
-        return True, databases
+        return databases
 
     except Error as e:
         logger.error(f"获取数据库列表失败: {e}")
-        return False, str(e)
+        raise Exception(f"获取数据库列表失败: {str(e)}")
     except Exception as e:
         logger.error(f"获取数据库列表时发生错误: {e}")
-        return False, f"获取数据库列表失败: {str(e)}"
+        raise Exception(f"获取数据库列表失败: {str(e)}")
     finally:
         if cursor:
             try:
