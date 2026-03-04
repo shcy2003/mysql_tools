@@ -21,4 +21,5 @@ urlpatterns = [
     # API Endpoints
     path('api/connections/', include('connections.api_urls')),
     path('api/queries/', include('queries.api_urls')),
+    path('api/', include('monitoring.urls')),
 ]
