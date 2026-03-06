@@ -4,6 +4,42 @@
 
 {% block page_title %}编辑 MySQL 连接{% endblock %}
 
+{% block extra_css %}
+<style>
+    .test-result {
+        margin-top: 10px;
+        padding: 12px;
+        border-radius: 6px;
+        display: none;
+    }
+    .test-result.success {
+        display: block;
+        background-color: #d1e7dd;
+        color: #0f5132;
+        border: 1px solid #badbcc;
+    }
+    .test-result.error {
+        display: block;
+        background-color: #f8d7da;
+        color: #842029;
+        border: 1px solid #f5c2c7;
+    }
+    .btn-test {
+        background: linear-gradient(135deg, #20c997 0%, #12b886 100%);
+        border: none;
+        color: white;
+    }
+    .btn-test:hover {
+        background: linear-gradient(135deg, #12b886 0%, #0ca678 100%);
+        color: white;
+    }
+    .btn-save:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-lg-12 mb-4">
@@ -70,24 +106,22 @@
                         <div class="col-md-12">
                             <label for="password" class="form-label">{{ form.password.label }}</label>
                             <input type="password" class="form-control" id="password" name="password" value="{{ form.password.value|default:'' }}"
-                                   placeholder="请输入密码">
+                                   placeholder="请输入密码（留空则不修改）">
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-12">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="test_connection" name="test_connection" checked>
-                                <label class="form-check-label" for="test_connection">
-                                    保存后测试连接
-                                </label>
-                            </div>
+                            <button type="button" class="btn btn-test btn-lg" id="btn-test-connection">
+                                <i class="bi bi-plug"></i> 测试连接
+                            </button>
+                            <div id="test-result" class="test-result"></div>
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-12">
-                            <button type="submit" class="btn btn-primary btn-lg">
+                            <button type="submit" class="btn btn-primary btn-lg btn-save" id="btn-save" disabled>
                                 <i class="bi bi-save"></i> 保存修改
                             </button>
                             <a href="{% url 'connections:connection_list' %}" class="btn btn-secondary btn-lg">
@@ -100,4 +134,87 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        var connectionTested = false;
+
+        $('#btn-test-connection').click(function() {
+            var btn = $(this);
+            var resultDiv = $('#test-result');
+
+            // 获取表单数据
+            var host = $('#host').val();
+            var port = $('#port').val();
+            var database = $('#database').val();
+            var username = $('#username').val();
+            var password = $('#password').val();
+
+            // 验证必填字段
+            if (!host || !port || !database || !username) {
+                resultDiv.removeClass('success').addClass('error');
+                resultDiv.html('<i class="bi bi-exclamation-triangle"></i> 请填写完整的主机、端口、数据库和用户名');
+                return;
+            }
+
+            // 显示加载状态
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>测试中...');
+            resultDiv.hide();
+
+            // 发送测试请求
+            $.ajax({
+                url: '/api/connections/test/',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    host: host,
+                    port: parseInt(port),
+                    database: database,
+                    username: username,
+                    password: password
+                }),
+                success: function(response) {
+                    if (response.code === 0) {
+                        resultDiv.removeClass('error').addClass('success');
+                        resultDiv.html('<i class="bi bi-check-circle"></i> ' + response.message);
+                        connectionTested = true;
+                        $('#btn-save').prop('disabled', false);
+                    } else {
+                        resultDiv.removeClass('success').addClass('error');
+                        resultDiv.html('<i class="bi bi-exclamation-triangle"></i> ' + response.message);
+                        connectionTested = false;
+                        $('#btn-save').prop('disabled', true);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    resultDiv.removeClass('success').addClass('error');
+                    resultDiv.html('<i class="bi bi-exclamation-triangle"></i> 测试失败: ' + error);
+                    connectionTested = false;
+                    $('#btn-save').prop('disabled', true);
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html('<i class="bi bi-plug"></i> 测试连接');
+                }
+            });
+        });
+
+        // 任何表单字段改变时，重置测试状态
+        $('#connection-form input').on('change input', function() {
+            connectionTested = false;
+            $('#btn-save').prop('disabled', true);
+            $('#test-result').hide();
+        });
+
+        // 表单提交前再次验证
+        $('#connection-form').on('submit', function(e) {
+            if (!connectionTested) {
+                e.preventDefault();
+                alert('请先测试连接，确保连接可用后再保存！');
+                return false;
+            }
+        });
+    });
+</script>
 {% endblock %}

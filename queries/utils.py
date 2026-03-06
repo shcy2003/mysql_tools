@@ -7,7 +7,7 @@ def run_query(connection, sql, user, request=None):
     """执行查询并记录查询历史和审计日志"""
     # 检查是否是 SELECT 查询
     if not sql.strip().lower().startswith('select'):
-        return False, '只允许执行 SELECT 查询！'
+        return False, '只允许执行 SELECT 查询！', 0
 
     start_time = time.time()
 

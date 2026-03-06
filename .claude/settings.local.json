@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(wsl -d Ubuntu -e bash -c \"kill 13128\")",
+      "Bash(wsl -d Ubuntu -e bash -c \"sleep 5 && ss -tulnp 2>/dev/null | grep 18789\")",
+      "Bash(wsl -d Ubuntu -e bash -c \"cat /home/kimi/.openclaw/openclaw.json | grep -A 5 -B 5 bind\")",
+      "Bash(wsl -d Ubuntu -e bash -c \"ps aux | grep openclaw | grep -v grep\")",
+      "Bash(wsl -d Ubuntu -e bash -c \"ss -tulnp 2>/dev/null\")",
+      "Bash(wsl -d Ubuntu -e bash -c \"python3 -c \"\":*)",
+      "Bash(wsl -d Ubuntu -e bash -c \"pkill -f openclaw-gateway && sleep 3 && ss -tulnp | grep 18789\")",
+      "Bash(wsl -d Ubuntu -e bash -c \"sleep 5 && ss -tulnp 2>/dev/null\")",
+      "Bash(wsl -d Ubuntu -e bash -c \"cat /home/kimi/.openclaw/openclaw.json | grep -A 5 -B 2 gateway\")",
+      "Bash(findstr 18789)",
+      "Bash(powershell -Command \"Test-NetConnection -ComputerName localhost -Port 18789\")",
+      "Bash(wsl -d Ubuntu -e bash -c \"curl -s http://localhost:18789 | head -10\")",
+      "Bash(powershell -Command \"Get-NetFirewallRule | Where-Object { $_DisplayName -like ''*18789*'' -or $_LocalPort -eq ''18789'' }\")",
+      "Bash(wsl -d Ubuntu -e bash -c \"ip addr show eth0 2>/dev/null | grep ''inet '' || ip addr show | grep ''inet '' | grep -v ''127.0.0.1'' | head -1\")",
+      "Bash(wsl -d Ubuntu -e bash -c \"hostname -I\")",
+      "Bash(powershell -Command \"Test-NetConnection -ComputerName 172.17.225.150 -Port 18789\")",
+      "Bash(powershell -Command \"netsh interface portproxy add v4tov4 listenaddress=127.0.0.1 listenport=18789 connectaddress=172.17.225.150 connectport=18789\")",
+      "Bash(netsh interface portproxy show v4tov4)",
+      "Read(//c/temp/readonly/**)",
+      "Read(//c//**)",
+      "Bash(dir c:temp)",
+      "Bash(powershell -Command \"Test-NetConnection -ComputerName localhost -Port 8000\")"
+    ]
+  }
+}

@@ -11,4 +11,6 @@ urlpatterns = [
     path('<int:connection_id>/databases/', views.api_connection_databases, name='api_connection_databases'),
     # 表列表 API
     path('<int:connection_id>/tables/', views.api_connection_tables, name='api_connection_tables'),
+    # 测试连接 API
+    path('test/', views.api_test_connection, name='api_test_connection'),
 ]

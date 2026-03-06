@@ -40,7 +40,7 @@ def audit_log_list_view(request):
     logs_page = paginator.get_page(page)
 
     # 获取所有用户和连接信息（用于筛选）
-    from django.contrib.auth.models import User
+    from accounts.models import User
     all_users = User.objects.all()
     from connections.models import MySQLConnection
     all_connections = MySQLConnection.objects.all()

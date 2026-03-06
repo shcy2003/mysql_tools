@@ -1,3 +1,4 @@
+import logging
 import mysql.connector
 from mysql.connector import Error
 from .models import MySQLConnection
@@ -9,6 +10,9 @@ from .pool import (
     get_pool_stats,
     close_connection_pool,
 )
+
+# 获取日志记录器
+logger = logging.getLogger(__name__)
 
 
 def test_mysql_connection(connection_params):
@@ -107,23 +111,40 @@ def get_databases(connection_params):
             release_connection(connection)
 
 
-def get_tables(connection_params):
-    """获取表列表"""
+def get_tables(connection, database):
+    """
+    获取指定数据库的表列表
+
+    Args:
+        connection: MySQLConnection 模型实例
+        database: 数据库名称
+
+    Returns:
+        list: 表名列表
+    """
+    connection_params = connection.get_connection_params()
+    connection_params['database'] = database
+
+    conn = None
+    cursor = None
     try:
-        connection = mysql.connector.connect(**connection_params)
-        if connection.is_connected():
-            cursor = connection.cursor(dictionary=True)
-            cursor.execute("SHOW TABLES")
-            tables = [row[f"Tables_in_{connection_params['database']}"]
-                     for row in cursor.fetchall()]
-            cursor.close()
-            connection.close()
-            return True, tables
-
+        # 直接创建新连接，不使用连接池（因为数据库参数不同）
+        conn = mysql.connector.connect(**connection_params)
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SHOW TABLES")
+        tables = [row[f"Tables_in_{database}"] for row in cursor.fetchall()]
+        return tables
     except Error as e:
-        return False, str(e)
-
-    return False, "获取表列表失败"
+        logger.error(f"获取表列表失败: {e}")
+        raise Exception(f"获取表列表失败: {str(e)}")
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn and conn.is_connected():
+            conn.close()
 
 
 import re

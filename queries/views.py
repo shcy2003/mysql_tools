@@ -26,12 +26,28 @@ def sql_query_view(request):
         connection_id = request.POST.get('connection')
         sql = request.POST.get('sql')
 
+        if not connection_id or not sql:
+            messages.error(request, '请选择连接并输入 SQL 语句')
+            return render(request, 'queries/sql_query.html', {
+                'connections': get_available_connections(request.user)
+            })
+
         connection = get_object_or_404(MySQLConnection, id=connection_id)
 
         # 检查权限：只有管理员或创建者可以使用此连接查询
         if request.user.role != 'admin' and connection.created_by != request.user:
             messages.error(request, '您没有权限使用此连接！')
             return redirect('queries:sql_query')
+
+        # 检查 SQL 是否为 SELECT
+        sql_upper = sql.strip().upper()
+        if not sql_upper.startswith('SELECT'):
+            messages.error(request, '仅支持 SELECT 查询语句！')
+            return render(request, 'queries/sql_query.html', {
+                'connections': get_available_connections(request.user),
+                'selected_connection': connection_id,
+                'sql': sql
+            })
 
         success, result, execution_time = run_query(
             connection, sql, request.user, request)
@@ -46,9 +62,10 @@ def sql_query_view(request):
             'connections': get_available_connections(request.user),
             'selected_connection': connection_id,
             'sql': sql,
-            'result': result,
+            'result': result if success else None,
             'execution_time': execution_time,
-            'success': success
+            'success': success,
+            'error': None if success else result
         })
     else:
         return render(request, 'queries/sql_query.html', {

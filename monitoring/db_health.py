@@ -71,15 +71,21 @@ def get_db_stats(db_name: str = 'default') -> Dict[str, Any]:
     try:
         conn = connections[db_name]
         settings_dict = conn.settings_dict
-        
+
+        # 确保所有值都是字符串，避免 JSON 序列化问题
+        def to_str(val):
+            if val is None:
+                return ''
+            return str(val)
+
         stats['connection_info'] = {
-            'vendor': conn.vendor,
-            'display_name': settings_dict.get('DISPLAY_NAME', 'Unknown'),
-            'host': settings_dict.get('HOST', 'localhost'),
-            'port': settings_dict.get('PORT', 'default'),
-            'database': settings_dict.get('NAME', 'unknown'),
-            'user': settings_dict.get('USER', 'unknown'),
-            'engine': settings_dict.get('ENGINE', 'unknown').split('.')[-1]
+            'vendor': to_str(conn.vendor),
+            'display_name': to_str(settings_dict.get('DISPLAY_NAME', 'Unknown')),
+            'host': to_str(settings_dict.get('HOST', 'localhost')),
+            'port': to_str(settings_dict.get('PORT', 'default')),
+            'database': to_str(settings_dict.get('NAME', 'unknown')),
+            'user': to_str(settings_dict.get('USER', 'unknown')),
+            'engine': to_str(settings_dict.get('ENGINE', 'unknown').split('.')[-1])
         }
         
         # Get MySQL specific stats if possible

@@ -348,3 +348,70 @@ def api_query_execute(request):
         print(f"API执行查询出错: {str(e)}")
         print(traceback.format_exc())
         return api_response(code=500, message=f'服务器内部错误: {str(e)}')
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(['POST'])
+def api_test_connection(request):
+    """
+    测试数据库连接
+    POST /api/connections/test/
+
+    请求体:
+    {
+        "host": "localhost",
+        "port": 3306,
+        "database": "test_db",
+        "username": "root",
+        "password": "password"
+    }
+
+    返回: {"code": 0, "message": "成功信息", "data": {...}}
+    """
+    try:
+        # 解析请求体
+        try:
+            body = json.loads(request.body)
+        except json.JSONDecodeError:
+            return api_response(code=400, message='请求体必须是有效的 JSON')
+
+        # 提取连接参数
+        host = body.get('host')
+        port = body.get('port')
+        database = body.get('database')
+        username = body.get('username')
+        password = body.get('password')
+
+        # 参数验证
+        if not host:
+            return api_response(code=400, message='请输入主机地址')
+        if not port:
+            return api_response(code=400, message='请输入端口')
+        if not database:
+            return api_response(code=400, message='请输入数据库名称')
+        if not username:
+            return api_response(code=400, message='请输入用户名')
+
+        # 构建连接参数
+        connection_params = {
+            'host': host,
+            'port': int(port) if port else 3306,
+            'database': database,
+            'user': username,
+            'password': password or ''
+        }
+
+        # 测试连接
+        success, message = test_mysql_connection(connection_params)
+
+        if success:
+            return api_response(code=0, message=message)
+        else:
+            return api_response(code=400, message=message)
+
+    except Exception as e:
+        import traceback
+        print(f"API测试连接出错: {str(e)}")
+        print(traceback.format_exc())
+        return api_response(code=500, message=f'测试连接失败: {str(e)}')
