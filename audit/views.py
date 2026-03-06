@@ -18,8 +18,7 @@ def audit_log_list_view(request):
     action = request.GET.get('action')
     user_id = request.GET.get('user')
     connection_id = request.GET.get('connection')
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
+    date_range = request.GET.get('date_range')
 
     if action:
         logs = logs.filter(action=action)
@@ -27,12 +26,33 @@ def audit_log_list_view(request):
         logs = logs.filter(user_id=user_id)
     if connection_id:
         logs = logs.filter(connection_id=connection_id)
-    if start_date and end_date:
+
+    # 处理时间范围
+    if date_range:
         from django.utils import timezone
         import datetime
-        start_datetime = timezone.make_aware(datetime.datetime.strptime(start_date, '%Y-%m-%d'))
-        end_datetime = timezone.make_aware(datetime.datetime.strptime(end_date, '%Y-%m-%d') + datetime.timedelta(days=1))
-        logs = logs.filter(created_at__range=(start_datetime, end_datetime))
+        now = timezone.now()
+        if date_range == '1h':
+            start_datetime = now - datetime.timedelta(hours=1)
+        elif date_range == '3h':
+            start_datetime = now - datetime.timedelta(hours=3)
+        elif date_range == '6h':
+            start_datetime = now - datetime.timedelta(hours=6)
+        elif date_range == '12h':
+            start_datetime = now - datetime.timedelta(hours=12)
+        elif date_range == '1d':
+            start_datetime = now - datetime.timedelta(days=1)
+        elif date_range == '3d':
+            start_datetime = now - datetime.timedelta(days=3)
+        elif date_range == '1w':
+            start_datetime = now - datetime.timedelta(weeks=1)
+        elif date_range == '1m':
+            start_datetime = now - datetime.timedelta(days=30)
+        else:
+            start_datetime = None
+
+        if start_datetime:
+            logs = logs.filter(created_at__gte=start_datetime)
 
     # 分页
     paginator = Paginator(logs, 50)
@@ -52,8 +72,7 @@ def audit_log_list_view(request):
         'selected_action': action,
         'selected_user': user_id,
         'selected_connection': connection_id,
-        'selected_start_date': start_date,
-        'selected_end_date': end_date,
+        'selected_date_range': date_range,
     }
 
     return render(request, 'audit/list.html', context)

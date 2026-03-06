@@ -11,3 +11,6 @@ mysqlclient==2.2.8
 # Optional utilities
 python-decouple==3.8
 python-dotenv==1.2.2
+
+# API documentation
+drf-yasg==1.21.7

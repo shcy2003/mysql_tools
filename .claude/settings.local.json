@@ -27,7 +27,10 @@
       "Read(//c/temp/readonly/**)",
       "Read(//c//**)",
       "Bash(dir c:temp)",
-      "Bash(powershell -Command \"Test-NetConnection -ComputerName localhost -Port 8000\")"
+      "Bash(powershell -Command \"Test-NetConnection -ComputerName localhost -Port 8000\")",
+      "Bash(find /c/git/mysql_query_platform -name \"*.pyc\" -delete)",
+      "Bash(findstr yasg)",
+      "Bash(pip install drf-yasg)"
     ]
   }
 }

@@ -78,9 +78,60 @@ def sql_query_view(request):
 
 @login_required
 def query_history_view(request):
-    """查询历史视图"""
-    history = QueryHistory.objects.filter(user=request.user).order_by('-created_at')
-    return render(request, 'queries/history.html', {'history': history})
+    """查询历史视图（支持筛选）"""
+    # 基础查询：管理员查看所有，普通用户只看自己的
+    if request.user.role == 'admin':
+        history = QueryHistory.objects.all()
+    else:
+        history = QueryHistory.objects.filter(user=request.user)
+
+    # 获取所有用户和连接（用于筛选下拉框）
+    from accounts.models import User
+    all_users = User.objects.all()
+    from connections.models import MySQLConnection
+    all_connections = MySQLConnection.objects.all()
+
+    # 筛选条件
+    filter_user_id = request.GET.get('user')
+    filter_connection_id = request.GET.get('connection')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    sql_keyword = request.GET.get('sql_keyword')
+
+    if filter_user_id:
+        history = history.filter(user_id=filter_user_id)
+    if filter_connection_id:
+        history = history.filter(connection_id=filter_connection_id)
+    if start_date and end_date:
+        from django.utils import timezone
+        import datetime
+        start_datetime = timezone.make_aware(datetime.datetime.strptime(start_date, '%Y-%m-%d'))
+        end_datetime = timezone.make_aware(datetime.datetime.strptime(end_date, '%Y-%m-%d') + datetime.timedelta(days=1))
+        history = history.filter(created_at__range=(start_datetime, end_datetime))
+    if sql_keyword:
+        history = history.filter(sql__icontains=sql_keyword)
+
+    # 排序
+    history = history.order_by('-created_at')
+
+    # 分页
+    from django.core.paginator import Paginator
+    paginator = Paginator(history, 20)
+    page = request.GET.get('page')
+    history_page = paginator.get_page(page)
+
+    context = {
+        'history': history_page,
+        'all_users': all_users,
+        'all_connections': all_connections,
+        'filter_user': filter_user_id,
+        'filter_connection': filter_connection_id,
+        'filter_start_date': start_date,
+        'filter_end_date': end_date,
+        'filter_sql_keyword': sql_keyword,
+    }
+
+    return render(request, 'queries/history.html', context)
 
 
 # Note: visual_query_view has been removed as per project requirements

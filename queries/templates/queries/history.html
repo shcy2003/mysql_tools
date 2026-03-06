@@ -4,9 +4,69 @@
 
 {% block page_title %}查询历史{% endblock %}
 
+{% block extra_css %}
+<style>
+    .filter-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .filter-card .form-label {
+        font-weight: 600;
+        color: #495057;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-lg-12 mb-4">
+        <!-- 筛选表单 -->
+        <div class="filter-card">
+            <form method="GET" class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">查询人</label>
+                    <select class="form-select" name="user">
+                        <option value="">全部用户</option>
+                        {% for user in all_users %}
+                            <option value="{{ user.id }}" {% if filter_user == user.id|stringformat:"s" %}selected{% endif %}>
+                                {{ user.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">数据库连接</label>
+                    <select class="form-select" name="connection">
+                        <option value="">全部连接</option>
+                        {% for conn in all_connections %}
+                            <option value="{{ conn.id }}" {% if filter_connection == conn.id|stringformat:"s" %}selected{% endif %}>
+                                {{ conn.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">开始日期</label>
+                    <input type="date" class="form-control" name="start_date" value="{{ filter_start_date|default:'' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">结束日期</label>
+                    <input type="date" class="form-control" name="end_date" value="{{ filter_end_date|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">SQL关键字</label>
+                    <input type="text" class="form-control" name="sql_keyword" placeholder="请输入SQL关键字" value="{{ filter_sql_keyword|default:'' }}">
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> 搜索
+                    </button>
+                </div>
+            </form>
+        </div>
+
         <div class="card">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">
@@ -20,6 +80,7 @@
                             <thead class="table-primary">
                                 <tr>
                                     <th>查询时间</th>
+                                    <th>查询人</th>
                                     <th>连接</th>
                                     <th>SQL 语句</th>
                                     <th>操作</th>
@@ -29,7 +90,8 @@
                                 {% for query in history %}
                                     <tr>
                                         <td>{{ query.created_at|date:"Y-m-d H:i:s" }}</td>
-                                        <td>{{ query.connection.name }}</td>
+                                        <td>{{ query.user.username }}</td>
+                                        <td>{% if query.connection %}{{ query.connection.name }}{% else %}-{% endif %}</td>
                                         <td>
                                             <div class="sql-preview">
                                                 {{ query.sql|truncatechars:100 }}
@@ -39,27 +101,51 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <a href="#" class="btn btn-sm btn-outline-primary" onclick="copySQL('{{ forloop.counter }}')" data-bs-toggle="tooltip" data-bs-placement="top" title="复制 SQL">
+                                            <a href="#" class="btn btn-sm btn-outline-primary" onclick="copySQL('{{ query.id }}')" data-bs-toggle="tooltip" data-bs-placement="top" title="复制 SQL">
                                                 <i class="bi bi-copy"></i>
                                             </a>
+                                            {% if query.connection %}
                                             <a href="{% url 'queries:sql_query' %}?sql={{ query.sql|urlencode }}&connection={{ query.connection.id }}" class="btn btn-sm btn-outline-success" data-bs-toggle="tooltip" data-bs-placement="top" title="重新执行">
                                                 <i class="bi bi-arrow-clockwise"></i>
                                             </a>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- 分页 -->
+                    {% if history.has_other_pages %}
+                    <nav>
+                        <ul class="pagination justify-content-center">
+                            {% if history.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ history.previous_page_number }}{% if filter_user %}&user={{ filter_user }}{% endif %}{% if filter_connection %}&connection={{ filter_connection }}{% endif %}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_sql_keyword %}&sql_keyword={{ filter_sql_keyword }}{% endif %}">上一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">上一页</span></li>
+                            {% endif %}
+
+                            <li class="page-item active"><span class="page-link">{{ history.number }} / {{ history.paginator.num_pages }}</span></li>
+
+                            {% if history.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ history.next_page_number }}{% if filter_user %}&user={{ filter_user }}{% endif %}{% if filter_connection %}&connection={{ filter_connection }}{% endif %}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_sql_keyword %}&sql_keyword={{ filter_sql_keyword }}{% endif %}">下一页</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">下一页</span></li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
                 {% else %}
                     <div class="text-center">
                         <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc; margin-bottom: 20px;"></i>
-                        <p class="text-muted">您还没有查询历史记录</p>
+                        <p class="text-muted">暂无查询历史记录</p>
                         <a href="{% url 'queries:sql_query' %}" class="btn btn-primary">
                             <i class="bi bi-code-square"></i> 开始 SQL 查询
-                        </a>
-                        <a href="{% url 'queries:sql_query_new' %}" class="btn btn-success ml-2">
-                            <i class="bi bi-grid-3x3-gap"></i> 开始可视化查询
                         </a>
                     </div>
                 {% endif %}
@@ -72,13 +158,19 @@
 {% block extra_js %}
 <script>
     // 复制 SQL 到剪贴板
-    function copySQL(index) {
-        const sql = '{{ history.0.sql }}'; // 这里需要根据实际索引获取 SQL
-        // 简单的复制功能实现
+    function copySQL(id) {
+        // 从表格行中获取SQL
+        var row = event.target.closest('tr');
+        var sqlCell = row.querySelector('.sql-preview');
+        var sql = sqlCell.textContent.trim();
+        if (sql.endsWith('查看全部')) {
+            sql = sqlCell.getAttribute('title') || sql;
+        }
+
         navigator.clipboard.writeText(sql).then(function() {
-            showNotification('SQL 已复制到剪贴板', 'success');
+            alert('SQL 已复制到剪贴板');
         }).catch(function(err) {
-            showNotification('复制失败: ' + err, 'error');
+            alert('复制失败: ' + err);
         });
     }
 

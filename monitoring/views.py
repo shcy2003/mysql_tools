@@ -5,6 +5,8 @@ import logging
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from .db_health import (
     check_db_connection,

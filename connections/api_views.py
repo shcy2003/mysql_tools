@@ -11,6 +11,8 @@ from connections.pool import (
     get_connection_from_pool,
     release_connection,
 )
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
 @login_required

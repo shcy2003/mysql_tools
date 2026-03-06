@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}API 文档 - MySQL 查询平台{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">API 导航</h5>
+                </div>
+                <div class="card-body p-0">
+                    <nav class="nav flex-column">
+                        {% for group in api_endpoints %}
+                            <a class="nav-link" href="#group-{{ forloop.counter }}">
+                                {{ group.group }}
+                            </a>
+                        {% endfor %}
+                        <a class="nav-link" href="#swagger">Swagger UI</a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">API 文档</h3>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                        欢迎使用 MySQL 查询平台 API 文档。本文档包含所有可用的 API 接口及其详细说明。
+                    </p>
+                    <div class="alert alert-info">
+                        <strong>提示：</strong>
+                        <ul>
+                            <li>所有需要认证的接口需要先登录系统</li>
+                            <li>响应格式统一为：{"code": 0, "message": "success", "data": {...}}</li>
+                            <li>状态码：0 表示成功，其他表示失败</li>
+                            <li>可以使用下方的 Swagger UI 进行在线测试</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            {% for group in api_endpoints %}
+            <div id="group-{{ forloop.counter }}" class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h4 class="mb-0">{{ group.group }}</h4>
+                </div>
+                <div class="card-body">
+                    {% for endpoint in group.endpoints %}
+                    <div class="endpoint-card mb-4 p-3 border rounded">
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="badge badge-{% if endpoint.method == 'GET' %}success{% elif endpoint.method == 'POST' %}primary{% elif endpoint.method == 'PUT' %}warning{% else %}danger{% endif %} mr-2">
+                                {{ endpoint.method }}
+                            </span>
+                            <h5 class="mb-0">{{ endpoint.name }}</h5>
+                        </div>
+
+                        <p><strong>路径：</strong><code>{{ endpoint.path }}</code></p>
+
+                        {% if endpoint.auth_required %}
+                            <p><span class="badge badge-info">需要认证</span></p>
+                        {% else %}
+                            <p><span class="badge badge-secondary">无需认证</span></p>
+                        {% endif %}
+
+                        <p><strong>描述：</strong>{{ endpoint.description }}</p>
+
+                        {% if endpoint.request_params %}
+                        <div class="mb-3">
+                            <h6>请求参数：</h6>
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>参数名</th>
+                                        <th>类型</th>
+                                        <th>必需</th>
+                                        <th>描述</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for param in endpoint.request_params %}
+                                    <tr>
+                                        <td><code>{{ param.name }}</code></td>
+                                        <td>{{ param.type }}</td>
+                                        <td>{% if param.required %}<span class="text-danger">是</span>{% else %}否{% endif %}</td>
+                                        <td>{{ param.description }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+
+                        <div>
+                            <h6>响应示例：</h6>
+                            <pre class="bg-dark text-light p-3 rounded"><code>{{ endpoint.response_example }}</code></pre>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <div id="swagger" class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">Swagger UI</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                        点击下方链接打开 Swagger UI 进行在线 API 测试：
+                    </p>
+                    <a href="/swagger/" target="_blank" class="btn btn-primary btn-lg">
+                        <i class="fas fa-rocket"></i> 打开 Swagger UI
+                    </a>
+                    <hr>
+                    <p>
+                        或者访问 Redoc 界面：
+                    </p>
+                    <a href="/redoc/" target="_blank" class="btn btn-secondary">
+                        <i class="fas fa-book"></i> 打开 Redoc
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+.endpoint-card {
+    transition: box-shadow 0.3s ease;
+}
+.endpoint-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.nav-link {
+    color: #495057;
+}
+.nav-link:hover {
+    background-color: #e9ecef;
+    color: #007bff;
+}
+</style>
+{% endblock %}
