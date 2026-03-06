@@ -165,6 +165,15 @@ function escapeHtml(text) {
 }
 
 // ============================================
+// CSRF Token
+// ============================================
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value
+        || document.cookie.match(/csrftoken=([^;]+)/)?.[1]
+        || '';
+}
+
+// ============================================
 // 事件处理
 // ============================================
 
@@ -221,7 +230,12 @@ function initEventHandlers() {
     });
 
     // 执行查询
-    $('#executeBtn').on('click', function() {
+    $('#executeBtn').click(function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('>>> Execute button clicked at', new Date().toISOString());
+        console.log('>>> Button type:', this.type);
+        console.log('>>> Button form:', this.form);
         executeQuery();
     });
 
@@ -336,6 +350,9 @@ function executeQuery() {
             sql: sql
         }),
         dataType: 'json',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+        },
         success: function(response) {
             hideLoadingOverlay();
             if (response.code === 0) {

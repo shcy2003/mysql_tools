@@ -141,6 +141,13 @@
     $(document).ready(function() {
         var connectionTested = false;
 
+        // CSRF token 获取函数
+        function getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                || document.cookie.match(/csrftoken=([^;]+)/)?.[1]
+                || '';
+        }
+
         $('#btn-test-connection').click(function() {
             var btn = $(this);
             var resultDiv = $('#test-result');
@@ -175,6 +182,9 @@
                     username: username,
                     password: password
                 }),
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+                },
                 success: function(response) {
                     if (response.code === 0) {
                         resultDiv.removeClass('error').addClass('success');

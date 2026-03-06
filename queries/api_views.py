@@ -282,6 +282,7 @@ def api_query_data(request):
 
 
 @login_required
+@csrf_exempt
 @require_http_methods(["POST"])
 def api_execute_query(request):
     """
@@ -393,17 +394,27 @@ def api_execute_query(request):
             
             execution_time = (time.time() - start_time) * 1000
             
-            # 记录查询历史（异步，失败不影响结果）
+            # 记录查询历史和审计日志（不记录 sql，查询历史已有）
             try:
                 from queries.models import QueryHistory
                 QueryHistory.objects.create(
                     user=request.user,
                     connection=connection,
-                    sql=sql
+                    sql=sql,
+                    execution_time=execution_time
+                )
+                # 审计日志不记录 sql
+                from audit.utils import create_audit_log
+                create_audit_log(
+                    user=request.user,
+                    action='query',
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    connection=connection,
+                    execution_time=execution_time
                 )
             except Exception:
                 pass
-            
+
             return JsonResponse({
                 "code": 0,
                 "message": "success",

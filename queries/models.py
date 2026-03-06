@@ -16,6 +16,7 @@ class QueryHistory(models.Model):
         related_name='query_history'
     )
     sql = models.TextField(verbose_name='SQL 语句')
+    execution_time = models.FloatField(null=True, blank=True, verbose_name='执行时间(ms)')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -6,21 +6,9 @@ class MaskingRuleForm(forms.ModelForm):
     """脱敏规则表单"""
     class Meta:
         model = MaskingRule
-        fields = ['connection', 'table_name', 'column_name', 'masking_type', 'masking_params']
+        fields = ['name', 'column_names', 'masking_type', 'masking_params']
         widgets = {
-            'connection': forms.Select(attrs={'class': 'form-control'}),
-            'table_name': forms.TextInput(
-                attrs={
-                    'class': 'form-control',
-                    'placeholder': '请输入表名'
-                }
-            ),
-            'column_name': forms.TextInput(
-                attrs={
-                    'class': 'form-control',
-                    'placeholder': '请输入列名'
-                }
-            ),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '请输入规则名称'}),
             'masking_type': forms.Select(attrs={'class': 'form-control'}),
             'masking_params': forms.Textarea(
                 attrs={
@@ -31,9 +19,8 @@ class MaskingRuleForm(forms.ModelForm):
             ),
         }
         labels = {
-            'connection': '连接',
-            'table_name': '表名',
-            'column_name': '列名',
+            'name': '规则名称',
+            'column_names': '列名',
             'masking_type': '脱敏类型',
             'masking_params': '脱敏参数',
         }

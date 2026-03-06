@@ -25,10 +25,11 @@ def run_query(connection, sql, user, request=None):
         QueryHistory.objects.create(
             user=user,
             connection=connection,
-            sql=sql
+            sql=sql,
+            execution_time=execution_time
         )
 
-        # 添加审计日志
+        # 添加审计日志（不记录 sql，因为查询历史已有）
         from audit.utils import create_audit_log
         if request:
             from accounts.views import get_client_ip
@@ -37,7 +38,6 @@ def run_query(connection, sql, user, request=None):
                 action='query',
                 ip_address=get_client_ip(request),
                 connection=connection,
-                sql=sql,
                 execution_time=execution_time
             )
         else:
@@ -46,7 +46,6 @@ def run_query(connection, sql, user, request=None):
                 action='query',
                 ip_address=None,
                 connection=connection,
-                sql=sql,
                 execution_time=execution_time
             )
 

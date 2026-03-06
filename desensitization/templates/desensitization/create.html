@@ -58,6 +58,16 @@
 
                     <div class="row mb-3">
                         <div class="col-md-12">
+                            <label for="name" class="form-label">
+                                <i class="bi bi-tag"></i> 规则名称
+                            </label>
+                            <input type="text" class="form-control" id="name" name="name"
+                                   placeholder="请输入规则名称，如：手机号脱敏" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
                             <label class="form-label">
                                 <i class="bi bi-columns"></i> 列名
                                 <span class="text-muted">(支持多个，点击+号添加)</span>
@@ -262,10 +272,12 @@
     }
 
     $(document).ready(function() {
+        console.log('Document ready, initializing...');
         toggleMaskingParams();
 
         // 添加列名按钮点击事件
-        $('#btn-add-column').click(function() {
+        $('#btn-add-column').on('click', function() {
+            console.log('Add column button clicked');
             const newColumn = $('#new_column_name').val().trim();
             if (!newColumn) {
                 alert('请输入列名');

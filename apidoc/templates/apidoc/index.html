@@ -17,7 +17,6 @@
                                 {{ group.group }}
                             </a>
                         {% endfor %}
-                        <a class="nav-link" href="#swagger">Swagger UI</a>
                     </nav>
                 </div>
             </div>
@@ -38,7 +37,7 @@
                             <li>所有需要认证的接口需要先登录系统</li>
                             <li>响应格式统一为：{"code": 0, "message": "success", "data": {...}}</li>
                             <li>状态码：0 表示成功，其他表示失败</li>
-                            <li>可以使用下方的 Swagger UI 进行在线测试</li>
+                            <li>路径中有 <code>{variable}</code> 的接口，请填写变量值后再测试</li>
                         </ul>
                     </div>
                 </div>
@@ -51,20 +50,20 @@
                 </div>
                 <div class="card-body">
                     {% for endpoint in group.endpoints %}
-                    <div class="endpoint-card mb-4 p-3 border rounded">
+                    <div class="endpoint-card mb-4 p-3 border rounded" data-endpoint-id="{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
                         <div class="d-flex align-items-center mb-3">
-                            <span class="badge badge-{% if endpoint.method == 'GET' %}success{% elif endpoint.method == 'POST' %}primary{% elif endpoint.method == 'PUT' %}warning{% else %}danger{% endif %} mr-2">
+                            <span class="badge bg-{% if 'GET' in endpoint.method %}success{% elif 'POST' in endpoint.method %}primary{% elif 'PUT' in endpoint.method %}warning{% else %}danger{% endif %} mr-2">
                                 {{ endpoint.method }}
                             </span>
                             <h5 class="mb-0">{{ endpoint.name }}</h5>
                         </div>
 
-                        <p><strong>路径：</strong><code>{{ endpoint.path }}</code></p>
+                        <p><strong>路径：</strong><code class="api-path">{{ endpoint.path }}</code></p>
 
                         {% if endpoint.auth_required %}
-                            <p><span class="badge badge-info">需要认证</span></p>
+                            <p><span class="badge bg-info">需要认证</span></p>
                         {% else %}
-                            <p><span class="badge badge-secondary">无需认证</span></p>
+                            <p><span class="badge bg-secondary">无需认证</span></p>
                         {% endif %}
 
                         <p><strong>描述：</strong>{{ endpoint.description }}</p>
@@ -95,9 +94,64 @@
                         </div>
                         {% endif %}
 
+                        <div class="mb-3">
+                            <h6>测试接口：</h6>
+
+                            <!-- 路径变量输入框 -->
+                            <div class="path-variables mb-2" style="display: none;">
+                                <h7>路径变量：</h7>
+                                <div class="path-variable-inputs row"></div>
+                            </div>
+
+                            <!-- 查询参数输入框 -->
+                            {% if 'GET' in endpoint.method %}
+                                <div class="query-params mb-2" style="display: none;">
+                                    <h7>查询参数：</h7>
+                                    <div class="query-param-inputs row"></div>
+                                </div>
+                            {% endif %}
+
+                            <!-- 请求体输入框 -->
+                            {% if 'POST' in endpoint.method or 'PUT' in endpoint.method %}
+                                <div class="mb-2">
+                                    <h7>请求体 (JSON)：</h7>
+                                    <textarea class="form-control request-body mb-2" rows="3" placeholder='{"key": "value"}'>
+{% if endpoint.name == '获取表列表' %}
+{"database": "test_db"}
+{% elif endpoint.name == '执行 SQL 查询' %}
+{"connection_id": 1, "sql": "SELECT * FROM users LIMIT 5"}
+{% elif endpoint.name == '通用数据查询' %}
+{"connection_id": 1, "table": "users", "page": 1, "page_size": 10}
+{% elif endpoint.name == '测试连接' %}
+{"host": "localhost", "port": 3306, "database": "test_db", "username": "root", "password": "password"}
+{% endif %}
+                                    </textarea>
+                                </div>
+                            {% endif %}
+
+                            {% if 'GET' in endpoint.method %}
+                                <button class="btn btn-primary test-api-btn" data-method="GET" data-url="{{ endpoint.path }}" data-endpoint="{{ endpoint.name }}">
+                                    <i class="bi bi-play"></i> 测试接口
+                                </button>
+                            {% elif 'POST' in endpoint.method %}
+                                <button class="btn btn-primary test-api-btn" data-method="POST" data-url="{{ endpoint.path }}" data-endpoint="{{ endpoint.name }}">
+                                    <i class="bi bi-play"></i> 测试接口
+                                </button>
+                            {% else %}
+                                <button class="btn btn-primary test-api-btn" data-method="{{ endpoint.method }}" data-url="{{ endpoint.path }}" data-endpoint="{{ endpoint.name }}">
+                                    <i class="bi bi-play"></i> 测试接口
+                                </button>
+                            {% endif %}
+                        </div>
+
                         <div>
                             <h6>响应示例：</h6>
                             <pre class="bg-dark text-light p-3 rounded"><code>{{ endpoint.response_example }}</code></pre>
+                        </div>
+
+                        <div class="test-results" style="display: none;">
+                            <h6>测试结果：</h6>
+                            <div class="alert alert-info" id="test-result-{{ forloop.parentloop.counter }}-{{ forloop.counter }}"></div>
                         </div>
                     </div>
                     {% endfor %}
@@ -105,24 +159,22 @@
             </div>
             {% endfor %}
 
-            <div id="swagger" class="card mb-4">
-                <div class="card-header bg-info text-white">
-                    <h4 class="mb-0">Swagger UI</h4>
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h4 class="mb-0">API 测试说明</h4>
                 </div>
                 <div class="card-body">
-                    <p class="lead">
-                        点击下方链接打开 Swagger UI 进行在线 API 测试：
-                    </p>
-                    <a href="/swagger/" target="_blank" class="btn btn-primary btn-lg">
-                        <i class="fas fa-rocket"></i> 打开 Swagger UI
-                    </a>
-                    <hr>
                     <p>
-                        或者访问 Redoc 界面：
+                        <strong>注意事项：</strong>
                     </p>
-                    <a href="/redoc/" target="_blank" class="btn btn-secondary">
-                        <i class="fas fa-book"></i> 打开 Redoc
-                    </a>
+                    <ul>
+                        <li>测试按钮会直接向目标接口发送请求</li>
+                        <li>路径中有 <code>{variable}</code> 的接口，请填写变量值后再测试</li>
+                        <li>对于需要认证的接口，测试时会使用当前登录用户的会话</li>
+                        <li>测试结果会显示在接口下方</li>
+                        <li>对于 POST/PUT 请求，请在测试前填写正确的 JSON 请求体</li>
+                        <li>如果接口未响应，可能是服务器未启动或接口地址有误</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -145,5 +197,181 @@
     background-color: #e9ecef;
     color: #007bff;
 }
+.request-body {
+    font-family: monospace;
+    font-size: 14px;
+}
+.path-variable-input,
+.query-param-input {
+    margin-bottom: 10px;
+}
+.test-results {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #e9ecef;
+}
+.fixed-bottom {
+    z-index: 1030;
+}
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 提取路径变量
+function extractPathVariables(path) {
+    const variables = [];
+    const regex = /\{(\w+)\}/g;
+    let match;
+    while ((match = regex.exec(path)) !== null) {
+        variables.push(match[1]);
+    }
+    return variables;
+}
+
+// 提取查询参数（从请求参数中）
+function extractQueryParams(endpoint) {
+    if (!endpoint.request_params) return [];
+    return endpoint.request_params.filter(param => {
+        // 判断哪些是查询参数
+        return param.name !== 'connection_id' || endpoint.path.includes('{connection_id}') ? false : true;
+    });
+}
+
+// 初始化路径变量和查询参数输入框
+function initializePathVariablesAndQueryParams() {
+    $('.endpoint-card').each(function() {
+        const card = $(this);
+        const path = card.find('.api-path').text();
+        const pathVariables = extractPathVariables(path);
+        const testBtn = card.find('.test-api-btn');
+        const endpointName = testBtn.data('endpoint');
+
+        // 处理路径变量
+        if (pathVariables.length > 0) {
+            const variablesDiv = card.find('.path-variables');
+            const inputsDiv = card.find('.path-variable-inputs');
+            variablesDiv.show();
+
+            pathVariables.forEach(variable => {
+                let defaultValue = '';
+                if (variable === 'connection_id') {
+                    defaultValue = '1';
+                }
+
+                const inputHtml = `
+                    <div class="col-md-6 path-variable-input">
+                        <label class="form-label">${variable}</label>
+                        <input type="text" class="form-control path-var-input" data-variable="${variable}" value="${defaultValue}" placeholder="请输入 ${variable}">
+                    </div>
+                `;
+                inputsDiv.append(inputHtml);
+            });
+        }
+    });
+}
+
+// 替换路径变量
+function replacePathVariables(path, card) {
+    let resultPath = path;
+    const inputs = card.find('.path-var-input');
+    inputs.each(function() {
+        const variable = $(this).data('variable');
+        const value = $(this).val();
+        resultPath = resultPath.replace(`{${variable}}`, encodeURIComponent(value));
+    });
+    return resultPath;
+}
+
+// 添加查询参数
+function addQueryParams(url, card) {
+    // 对于 GET 请求，我们可以简单处理
+    // 实际上需要根据具体接口来判断哪些参数是查询参数
+    return url;
+}
+
+// API 测试功能
+$(document).ready(function() {
+    // 初始化路径变量输入框
+    initializePathVariablesAndQueryParams();
+
+    $('.test-api-btn').click(function() {
+        const btn = $(this);
+        const method = btn.data('method');
+        const urlTemplate = btn.data('url');
+        const endpointName = btn.data('endpoint');
+        const card = btn.closest('.endpoint-card');
+        const resultsDiv = card.find('.test-results');
+        const resultDiv = card.find('.test-results .alert');
+
+        // 替换路径变量
+        let url = replacePathVariables(urlTemplate, card);
+
+        // 显示加载状态
+        btn.prop('disabled', true);
+        btn.html('<i class="bi bi-hourglass-split"></i> 测试中...');
+        resultsDiv.show();
+        resultDiv.removeClass('alert-success alert-danger alert-info');
+        resultDiv.addClass('alert-info');
+        resultDiv.html(`正在发送请求到 <code>${url}</code>...`);
+
+        // 构建请求
+        const requestData = {
+            url: url,
+            method: method,
+            dataType: 'json'
+        };
+
+        if (method === 'POST' || method === 'PUT') {
+            const requestBody = card.find('.request-body').val().trim();
+            try {
+                requestData.data = JSON.parse(requestBody);
+                requestData.contentType = 'application/json';
+            } catch (e) {
+                resultDiv.removeClass('alert-info');
+                resultDiv.addClass('alert-danger');
+                resultDiv.html(`<strong>错误：</strong>请求体不是有效的 JSON 格式\n${e}`);
+                btn.prop('disabled', false);
+                btn.html('<i class="bi bi-play"></i> 测试接口');
+                return;
+            }
+        }
+
+        // 发送请求
+        $.ajax(requestData)
+            .done(function(data, textStatus, jqXHR) {
+                let resultHtml = `<strong>请求成功 (${jqXHR.status})</strong>\n\n`;
+                resultHtml += `请求 URL: <code>${url}</code>\n\n`;
+                resultHtml += `响应数据:\n${JSON.stringify(data, null, 2)}`;
+
+                resultDiv.removeClass('alert-info');
+                resultDiv.addClass(data.code === 0 ? 'alert-success' : 'alert-danger');
+                resultDiv.html(resultHtml);
+            })
+            .fail(function(jqXHR, textStatus, errorThrown) {
+                let resultHtml = `<strong>请求失败 (${jqXHR.status})</strong>\n\n`;
+                resultHtml += `请求 URL: <code>${url}</code>\n\n`;
+                resultHtml += `状态: ${textStatus}\n\n`;
+                if (jqXHR.responseText) {
+                    try {
+                        const errorData = JSON.parse(jqXHR.responseText);
+                        resultHtml += `响应数据:\n${JSON.stringify(errorData, null, 2)}`;
+                    } catch (e) {
+                        resultHtml += `响应数据:\n${jqXHR.responseText}`;
+                    }
+                } else {
+                    resultHtml += `错误: ${errorThrown}`;
+                }
+
+                resultDiv.removeClass('alert-info');
+                resultDiv.addClass('alert-danger');
+                resultDiv.html(resultHtml);
+            })
+            .always(function() {
+                btn.prop('disabled', false);
+                btn.html('<i class="bi bi-play"></i> 测试接口');
+            });
+    });
+});
+</script>
 {% endblock %}

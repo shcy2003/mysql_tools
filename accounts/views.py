@@ -1,10 +1,9 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
-from .forms import LoginForm
+from .forms import LoginForm, UserForm
 from .models import User
 
 
@@ -77,3 +76,86 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
+
+
+# ===== 用户管理视图 =====
+@login_required
+def user_list(request):
+    """用户列表视图（仅管理员）"""
+    if request.user.role != 'admin':
+        messages.error(request, '您没有权限访问此页面！')
+        return redirect('queries:query_list')
+
+    users = User.objects.all().order_by('-date_joined')
+    return render(request, 'accounts/user_list.html', {'users': users})
+
+
+@login_required
+def user_create(request):
+    """创建用户视图（仅管理员）"""
+    if request.user.role != 'admin':
+        messages.error(request, '您没有权限访问此页面！')
+        return redirect('queries:query_list')
+
+    if request.method == 'POST':
+        form = UserForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            password = form.cleaned_data.get('password')
+            if password:
+                user.set_password(password)
+            user.save()
+            messages.success(request, f'用户 {user.username} 创建成功！')
+            return redirect('accounts:user_list')
+    else:
+        form = UserForm()
+
+    return render(request, 'accounts/user_form.html', {'form': form, 'title': '创建用户'})
+
+
+@login_required
+def user_edit(request, user_id):
+    """编辑用户视图（仅管理员）"""
+    if request.user.role != 'admin':
+        messages.error(request, '您没有权限访问此页面！')
+        return redirect('queries:query_list')
+
+    user = get_object_or_404(User, id=user_id)
+
+    if request.method == 'POST':
+        form = UserForm(request.POST, instance=user)
+        if form.is_valid():
+            updated_user = form.save(commit=False)
+            password = form.cleaned_data.get('password')
+            if password:
+                updated_user.set_password(password)
+            updated_user.save()
+            messages.success(request, f'用户 {updated_user.username} 更新成功！')
+            return redirect('accounts:user_list')
+    else:
+        form = UserForm(instance=user)
+
+    return render(request, 'accounts/user_form.html', {'form': form, 'title': '编辑用户', 'user': user})
+
+
+@login_required
+def user_delete(request, user_id):
+    """删除用户视图（仅管理员）"""
+    if request.user.role != 'admin':
+        messages.error(request, '您没有权限访问此页面！')
+        return redirect('queries:query_list')
+
+    # 不能删除自己
+    if request.user.id == user_id:
+        messages.error(request, '不能删除当前登录用户！')
+        return redirect('accounts:user_list')
+
+    user = get_object_or_404(User, id=user_id)
+
+    if request.method == 'POST':
+        username = user.username
+        user.delete()
+        messages.success(request, f'用户 {username} 删除成功！')
+        return redirect('accounts:user_list')
+
+    return render(request, 'accounts/user_confirm_delete.html', {'user': user})

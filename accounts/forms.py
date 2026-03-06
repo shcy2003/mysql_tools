@@ -61,3 +61,60 @@ class UserRegisterForm(UserCreationForm):
                 }
             ),
         }
+
+
+class UserForm(forms.ModelForm):
+    """用户管理表单（创建和编辑用户）"""
+    password = forms.CharField(
+        label='密码',
+        required=False,
+        widget=forms.PasswordInput(
+            attrs={
+                'class': 'form-control',
+                'placeholder': '留空则不修改密码'
+            }
+        )
+    )
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'role', 'is_active')
+        widgets = {
+            'username': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': '请输入用户名'
+                }
+            ),
+            'email': forms.EmailInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': '请输入邮箱地址'
+                }
+            ),
+            'role': forms.Select(
+                attrs={
+                    'class': 'form-select'
+                }
+            ),
+            'is_active': forms.CheckboxInput(
+                attrs={
+                    'class': 'form-check-input'
+                }
+            )
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 确保所有字段都有正确的 class
+        for field_name, field in self.fields.items():
+            if field_name == 'is_active':
+                continue
+            if field.widget.attrs.get('class'):
+                field.widget.attrs['class'] += ' '
+            else:
+                field.widget.attrs['class'] = ''
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs['class'] += 'form-check-input'
+            else:
+                field.widget.attrs['class'] += 'form-control'
