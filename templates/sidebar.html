@@ -18,6 +18,13 @@
                         SQL查询
                     </a>
                 </li>
+                <!-- SQL查询页面的数据库树 -->
+                <li class="nav-item" id="sql-query-tree" style="display: none;">
+                    <div class="px-3 py-2 text-muted small">数据库连接</div>
+                    <div id="connection-tree-container" class="ms-3">
+                        <div class="text-muted py-2 text-sm">加载中...</div>
+                    </div>
+                </li>
                 {% if user.role == 'admin' %}
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center gap-2" href="{% url 'connections:connection_list' %}">

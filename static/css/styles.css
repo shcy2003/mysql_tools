@@ -892,3 +892,74 @@ a:hover {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* ==========================================
+   16. 侧边栏连接树样式
+   ========================================== */
+.connection-item,
+.db-item-sidebar,
+.table-item-sidebar {
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 6px;
+    margin: 2px 0;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+}
+
+.connection-item:hover,
+.db-item-sidebar:hover,
+.table-item-sidebar:hover {
+    background: var(--gray-100);
+}
+
+.connection-item.active,
+.db-item-sidebar.active {
+    background: rgba(102, 126, 234, 0.15);
+    color: var(--primary);
+}
+
+.connection-toggle,
+.db-toggle-sidebar {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    width: 20px;
+    color: var(--gray-500);
+}
+
+.connection-toggle:hover,
+.db-toggle-sidebar:hover {
+    color: var(--primary);
+}
+
+.database-list,
+.table-list-sidebar {
+    margin-left: 8px;
+}
+
+#sql-query-tree .text-muted.small {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table-item-sidebar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.table-actions {
+    margin-left: auto;
+}
+
+.table-actions .btn {
+    padding: 2px 6px;
+    font-size: 0.75rem;
+}
+
+.table-actions .btn:hover {
+    transform: translateY(-1px);
+}
+

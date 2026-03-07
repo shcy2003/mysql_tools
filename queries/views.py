@@ -24,10 +24,11 @@ def sql_query_view(request):
     """SQL 查询视图"""
     if request.method == 'POST':
         connection_id = request.POST.get('connection')
+        database = request.POST.get('database')
         sql = request.POST.get('sql')
 
-        if not connection_id or not sql:
-            messages.error(request, '请选择连接并输入 SQL 语句')
+        if not connection_id or not database or not sql:
+            messages.error(request, '请选择连接、数据库并输入 SQL 语句')
             return render(request, 'queries/sql_query.html', {
                 'connections': get_available_connections(request.user)
             })
@@ -50,7 +51,7 @@ def sql_query_view(request):
             })
 
         success, result, execution_time = run_query(
-            connection, sql, request.user, request)
+            connection, sql, request.user, request, database)
 
         if success:
             messages.success(
@@ -61,6 +62,7 @@ def sql_query_view(request):
         return render(request, 'queries/sql_query.html', {
             'connections': get_available_connections(request.user),
             'selected_connection': connection_id,
+            'selected_database': database,
             'sql': sql,
             'result': result if success else None,
             'execution_time': execution_time,

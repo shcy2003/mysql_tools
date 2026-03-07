@@ -191,39 +191,8 @@
 {% endif %}
 
 <div class="row">
-    <!-- Left Panel: Connection & Database Selection (Sidebar) -->
-    <div class="col-md-3 mb-4">
-        <!-- Connection Selection -->
-        <div class="mb-3">
-            <label class="form-label fw-bold">
-                <i class="bi bi-hdd-network me-2"></i>数据库连接
-            </label>
-            <select class="form-select connection-select" id="connection" name="connection" required>
-                <option value="">请选择连接...</option>
-                {% for connection in connections %}
-                    <option value="{{ connection.id }}" {% if selected_connection == connection.id|stringformat:"s" %}selected{% endif %}>
-                        {{ connection.name }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <!-- Database List (with inline table expand) -->
-        <div class="mb-3" id="database-panel" style="display: none;">
-            <label class="form-label fw-bold">
-                <i class="bi bi-database me-2"></i>数据库
-                <span id="db-loading" class="spinner-border spinner-border-sm text-primary ms-2" style="display: none;"></span>
-            </label>
-            <div class="sidebar-panel" id="database-list">
-                <div class="text-center text-muted py-3">
-                    <i class="bi bi-arrow-left"></i> 请先选择连接
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Right Panel: SQL Editor & Results -->
-    <div class="col-md-9">
+    <!-- Main Panel: SQL Editor & Results -->
+    <div class="col-md-12">
         <!-- SQL Editor Card -->
         <div class="sql-editor-card card mb-4">
             <div class="sql-editor-header">
@@ -241,7 +210,18 @@
             <div class="card-body p-0">
                 <form method="POST" id="sql-query-form">
                     {% csrf_token %}
+                    <!-- Hidden connection field for form submission -->
+                    <input type="hidden" id="connection-hidden" name="connection" value="{{ selected_connection|default_if_none:'' }}">
+                    <!-- Hidden database field for form submission -->
+                    <input type="hidden" id="database-hidden" name="database" value="{{ selected_database|default_if_none:'' }}">
                     <div class="p-4">
+                        <!-- Selected database display -->
+                        <div id="selected-db-display" class="mb-3" {% if not selected_database %}style="display: none;"{% endif %}>
+                            <span class="badge bg-primary">
+                                <i class="bi bi-database-fill me-1"></i>
+                                当前数据库: <span id="selected-db-name">{{ selected_database|default_if_none:'未选择' }}</span>
+                            </span>
+                        </div>
                         <!-- CodeMirror Editor -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">
@@ -280,11 +260,16 @@
                 <h6 class="mb-0">
                     <i class="bi bi-table text-success me-2"></i>查询结果
                 </h6>
-                {% if execution_time %}
-                <span class="badge bg-success">
-                    <i class="bi bi-clock me-1"></i>耗时: {{ execution_time|floatformat:2 }}ms
-                </span>
-                {% endif %}
+                <div class="d-flex align-items-center gap-2">
+                    {% if execution_time %}
+                    <span class="badge bg-success">
+                        <i class="bi bi-clock me-1"></i>耗时: {{ execution_time|floatformat:2 }}ms
+                    </span>
+                    {% endif %}
+                    <button type="button" class="btn btn-sm btn-outline-success" id="export-excel-btn">
+                        <i class="bi bi-file-earmark-excel me-1"></i>导出Excel
+                    </button>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-wrapper">
@@ -315,6 +300,32 @@
             </div>
         </div>
         {% endif %}
+    </div>
+</div>
+
+<!-- 表结构模态框 -->
+<div class="modal fade" id="tableStructureModal" tabindex="-1" aria-labelledby="tableStructureModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tableStructureModalLabel">
+                    <i class="bi bi-table"></i> 表结构
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="table-structure-container">
+                    <div class="text-center text-muted py-3">
+                        <div class="spinner-border spinner-border-sm"></div> 加载中...
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> 关闭
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -348,110 +359,329 @@
         'Cmd-Space': 'autocomplete'
     });
 
-    // Connection change handler
-    $('#connection').change(function() {
-        var connectionId = $(this).val();
+    // 显示表结构函数 - 在侧边栏点击结构按钮时调用
+    window.showTableStructure = function(connectionId, database, table) {
+        console.log('Showing table structure:', connectionId, database, table);
 
-        if (!connectionId) {
-            $('#database-panel').hide();
-            return;
-        }
+        // 显示模态框
+        var modal = new bootstrap.Modal(document.getElementById('tableStructureModal'));
+        modal.show();
 
-        // Show loading
-        $('#database-panel').show();
-        $('#db-loading').show();
-        $('#database-list').html('<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>');
+        // 加载表结构
+        var $container = $('#table-structure-container');
+        $container.html('<div class=\"text-center text-muted py-3\"><div class=\"spinner-border spinner-border-sm\"></div> 加载中...</div>');
 
-        // Fetch databases
-        $.get('/api/connections/' + connectionId + '/databases/', function(data) {
-            $('#db-loading').hide();
+        $.get('/api/queries/table_structure/', {
+            connection_id: connectionId,
+            table: table,
+            database: database
+        }, function(data) {
             if (data.code === 0) {
-                var html = '';
-                data.data.forEach(function(db) {
-                    html += '<div class="db-item" data-db="' + db + '">' +
-                            '<span class="db-toggle" data-db="' + db + '"><i class="bi bi-plus-square"></i></span> ' +
-                            '<i class="bi bi-database"></i> ' + db + '</div>';
+                var html = '<table class=\"table table-bordered table-hover\">' +
+                           '<thead class=\"table-light\">' +
+                           '<tr>' +
+                           '<th>字段名</th>' +
+                           '<th>类型</th>' +
+                           '<th>是否为空</th>' +
+                           '<th>键</th>' +
+                           '<th>默认值</th>' +
+                           '<th>额外信息</th>' +
+                           '</tr>' +
+                           '</thead>' +
+                           '<tbody>';
+
+                data.data.forEach(function(column) {
+                    html += '<tr>' +
+                            '<td>' + (column.Field || '') + '</td>' +
+                            '<td>' + (column.Type || '') + '</td>' +
+                            '<td>' + (column.Null || '') + '</td>' +
+                            '<td>' + (column.Key || '') + '</td>' +
+                            '<td>' + (column.Default || '') + '</td>' +
+                            '<td>' + (column.Extra || '') + '</td>' +
+                            '</tr>';
                 });
-                $('#database-list').html(html || '<div class="text-muted py-3">暂无数据库</div>');
+
+                html += '</tbody></table>';
+                $container.html(html);
             } else {
-                $('#database-list').html('<div class="text-danger py-3">' + data.message + '</div>');
+                $container.html('<div class=\"alert alert-danger\">' + data.message + '</div>');
             }
         }).fail(function() {
-            $('#db-loading').hide();
-            $('#database-list').html('<div class="text-danger py-3">加载失败</div>');
+            $container.html('<div class=\"alert alert-danger\">加载表结构失败</div>');
         });
-    });
+    };
 
-    // Database expand/collapse handler
-    $(document).on('click', '.db-toggle', function(e) {
-        e.stopPropagation();
-        var connectionId = $('#connection').val();
-        var database = $(this).data('db');
-        var $toggle = $(this);
-        var $dbItem = $toggle.closest('.db-item');
+    // 与侧边栏通信的函数 - 当侧边栏选择连接时调用
+    window.updateSqlQueryConnection = function(connectionId) {
+        console.log('Updating connection from sidebar:', connectionId);
+        $('#connection-hidden').val(connectionId);
 
-        if ($dbItem.hasClass('expanded')) {
-            // Collapse
-            $dbItem.removeClass('expanded');
-            $toggle.html('<i class="bi bi-plus-square"></i>');
-            $dbItem.find('.table-list').remove();
-        } else {
-            // Expand - fetch tables
-            $dbItem.addClass('expanded');
-            $toggle.html('<i class="bi bi-dash-square"></i>');
-
-            // Show loading
-            var $tableContainer = $('<div class="table-list ms-3"></div>');
-            $tableContainer.append('<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary"></div></div>');
-            $dbItem.after($tableContainer);
-
-            $.get('/api/connections/' + connectionId + '/tables/?database=' + database, function(data) {
-                if (data.code === 0) {
-                    var html = '';
-                    data.data.forEach(function(table) {
-                        html += '<div class="table-item" data-table="' + table + '">' +
-                                '<i class="bi bi-table"></i> ' + table + '</div>';
-                    });
-                    $tableContainer.html(html || '<div class="text-muted py-2">暂无表</div>');
-                } else {
-                    $tableContainer.html('<div class="text-danger py-2">' + data.message + '</div>');
-                }
-            }).fail(function() {
-                $tableContainer.html('<div class="text-danger py-2">加载失败</div>');
-            });
+        // 查找连接名称并显示
+        var connections = [{% for conn in connections %}{id: {{ conn.id }}, name: "{{ conn.name|escapejs }}"},{% endfor %}];
+        var selectedConn = connections.find(c => c.id == connectionId);
+        if (selectedConn) {
+            // 可以在这里显示已选连接信息
         }
-    });
+    };
 
-    // Table click - insert into editor
-    $(document).on('click', '.table-item', function() {
-        var table = $(this).data('table');
-        var cursor = editor.getCursor();
-        editor.replaceRange('SELECT * FROM ' + table + ' LIMIT 10', cursor);
+    // 与侧边栏通信的函数 - 当侧边栏选择数据库时调用
+    window.updateSqlQueryDatabase = function(database) {
+        console.log('Updating database from sidebar:', database);
+        $('#database-hidden').val(database);
+        $('#selected-db-name').text(database);
+        $('#selected-db-display').show();
+    };
+
+    // 与侧边栏通信的函数 - 当侧边栏点击表时调用
+    window.insertTableIntoEditor = function(database, table) {
+        console.log('Inserting table from sidebar:', database, table);
+        // 确保数据库被选中
+        window.updateSqlQueryDatabase(database);
+        // 覆盖SQL编辑器内容
+        editor.setValue('SELECT * FROM `' + table + '` LIMIT 10');
         editor.focus();
-    });
+    };
 
     function clearQuery() {
         editor.setValue('');
-        $('#connection').val('');
-        $('#database-panel').hide();
+        $('#connection-hidden').val('');
+        $('#database-hidden').val('');
+        $('#selected-db-display').hide();
+        $('#selected-db-name').text('未选择');
+        // 清除侧边栏的选中状态
+        if (window.selectedConnectionId) {
+            window.selectedConnectionId = null;
+        }
+        if (window.selectedDatabase) {
+            window.selectedDatabase = null;
+        }
     }
 
-    // Form submit - validate SELECT only
+    // 导出Excel功能 - 使用事件委托来处理动态生成的按钮
+    $(document).on('click', '#export-excel-btn', function() {
+        var connectionId = $('#connection-hidden').val();
+        var database = $('#database-hidden').val();
+        var sql = editor.getValue().trim();
+
+        if (!connectionId) {
+            alert('请先选择数据库连接');
+            return;
+        }
+
+        if (!database) {
+            alert('请先选择数据库');
+            return;
+        }
+
+        if (!sql || !sql.toUpperCase().startsWith('SELECT')) {
+            alert('请输入有效的SELECT查询语句');
+            return;
+        }
+
+        // 显示加载状态
+        var $btn = $(this);
+        var originalHtml = $btn.html();
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>导出中...');
+
+        // 使用fetch来处理请求，这样可以显示错误
+        fetch('/api/queries/export_excel/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                connection_id: connectionId,
+                database: database,
+                sql: sql
+            })
+        })
+        .then(function(response) {
+            if (response.ok) {
+                return response.blob();
+            } else {
+                return response.json().then(function(error) {
+                    throw new Error(error.message || '导出失败');
+                });
+            }
+        })
+        .then(function(blob) {
+            // 创建下载链接
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'query_result.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        })
+        .catch(function(error) {
+            console.error('Export error:', error);
+            alert('导出失败: ' + error.message);
+        })
+        .finally(function() {
+            $btn.prop('disabled', false).html(originalHtml);
+        });
+    });
+
+    // 获取CSRF令牌
+    function getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+               document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+    }
+
+    // Form submit - validate SELECT only and use AJAX
     $('#sql-query-form').submit(function(e) {
+        e.preventDefault(); // 阻止默认表单提交
+
+        // 同步 CodeMirror 内容到 textarea，确保能获取到最新内容
+        $('#sql-editor').val(editor.getValue());
+
         var sql = editor.getValue().trim().toUpperCase();
         if (!sql) {
             alert('请输入 SQL 语句');
-            e.preventDefault();
             return;
         }
         if (!sql.startsWith('SELECT')) {
             alert('仅支持 SELECT 查询语句！');
-            e.preventDefault();
+            return;
+        }
+
+        var connectionId = $('#connection-hidden').val();
+        if (!connectionId) {
+            alert('请选择数据库连接！');
+            return;
+        }
+
+        var database = $('#database-hidden').val();
+        if (!database) {
+            alert('请选择数据库！');
             return;
         }
 
         // Show loading state
-        $('#execute-btn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>执行中...');
+        var $executeBtn = $('#execute-btn');
+        var originalHtml = $executeBtn.html();
+        $executeBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>执行中...');
+
+        // 隐藏之前的结果和错误信息
+        $('.result-card').remove();
+        $('.sql-error').remove();
+
+        // 发送AJAX请求
+        $.ajax({
+            url: '/api/queries/execute/',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                connection_id: connectionId,
+                database: database,
+                sql: editor.getValue().trim()
+            }),
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+            },
+            success: function(response) {
+                if (response.code === 0) {
+                    // 显示查询结果
+                    displayQueryResult(response.data);
+                } else {
+                    // 显示错误信息
+                    displayQueryError(response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                var errorMessage = '查询失败: ' + error;
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    errorMessage = response.message || errorMessage;
+                } catch (e) {
+                    // 如果响应不是JSON格式，使用默认错误信息
+                }
+                displayQueryError(errorMessage);
+            },
+            complete: function() {
+                // 恢复按钮状态
+                $executeBtn.prop('disabled', false).html(originalHtml);
+            }
+        });
     });
+
+    // 显示查询结果
+    function displayQueryResult(data) {
+        var $resultArea = $('<div class="result-card card"></div>');
+
+        var headerHtml = '<div class="d-flex justify-content-between align-items-center p-3 border-bottom">' +
+                        '<h6 class="mb-0">' +
+                        '<i class="bi bi-table text-success me-2"></i>查询结果' +
+                        '</h6>' +
+                        '<div class="d-flex align-items-center gap-2">';
+
+        if (data.execution_time_ms) {
+            headerHtml += '<span class="badge bg-success">' +
+                        '<i class="bi bi-clock me-1"></i>耗时: ' + data.execution_time_ms.toFixed(2) + 'ms' +
+                        '</span>';
+        }
+
+        headerHtml += '<button type="button" class="btn btn-sm btn-outline-success" id="export-excel-btn">' +
+                    '<i class="bi bi-file-earmark-excel me-1"></i>导出Excel' +
+                    '</button></div></div>';
+
+        $resultArea.append(headerHtml);
+
+        var $cardBody = $('<div class="card-body p-0"></div>');
+        var $tableWrapper = $('<div class="table-wrapper"></div>');
+        var $table = $('<table class="table result-table mb-0"></table>');
+
+        // 生成表头
+        var $thead = $('<thead></thead>');
+        var $headerRow = $('<tr></tr>');
+        data.columns.forEach(function(column) {
+            $headerRow.append('<th>' + column + '</th>');
+        });
+        $thead.append($headerRow);
+        $table.append($thead);
+
+        // 生成数据行
+        var $tbody = $('<tbody></tbody>');
+        data.rows.forEach(function(row) {
+            var $row = $('<tr></tr>');
+            data.columns.forEach(function(column) {
+                var value = row[column];
+                $row.append('<td title="' + (value || '') + '">' + (value || '') + '</td>');
+            });
+            $tbody.append($row);
+        });
+        $table.append($tbody);
+
+        $tableWrapper.append($table);
+        $cardBody.append($tableWrapper);
+
+        var $footer = $('<div class="card-footer bg-white">' +
+                        '<small class="text-muted">' +
+                        '<i class="bi bi-info-circle me-1"></i>共返回 ' + data.rows.length + ' 条记录' +
+                        '</small></div>');
+
+        $resultArea.append($cardBody);
+        $resultArea.append($footer);
+
+        // 插入到页面中
+        $('#sql-query-form').after($resultArea);
+
+        // 重新绑定导出Excel事件
+        $('#export-excel-btn').click(function() {
+            window.exportExcel();
+        });
+    }
+
+    // 显示查询错误
+    function displayQueryError(errorMessage) {
+        var $errorDiv = $('<div class="sql-error mb-4">' +
+                        '<i class="bi bi-exclamation-triangle me-2"></i>' + errorMessage +
+                        '</div>');
+
+        $('#sql-query-form').after($errorDiv);
+    }
 </script>
 {% endblock %}

@@ -405,62 +405,44 @@ Not Found: /.well-known/appspecific/com.chrome.devtools.json
 [06/Mar/2026 22:04:01] "POST /queries/sql/ HTTP/1.1" 200 19553
 Not Found: /.well-known/appspecific/com.chrome.devtools.json
 [06/Mar/2026 22:04:01] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3854
-queries/ HTTP/1.1" 200 14163
-[06/Mar/2026 21:23:48] "GET /queries/sql/ HTTP/1.1" 200 19415
-[06/Mar/2026 21:23:51] "GET /queries/ HTTP/1.1" 200 14163
-[06/Mar/2026 21:24:00] "GET /connections/ HTTP/1.1" 200 9690
-[06/Mar/2026 21:24:03] "GET /connections/create/ HTTP/1.1" 200 14177
-C:\git\mysql_query_platform\queries\api_views.py changed, reloading.
-Performing system checks...
-
-System check identified no issues (0 silenced).
-March 06, 2026 - 21:23:13
-Django version 6.0.2, using settings 'mysql_query_platform.settings'
-Starting development server at http://127.0.0.1:8000/
-Quit the server with CTRL-BREAK.
-
-WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
-For more information on production servers see: https://docs.djangoproject.com/en/6.0/howto/deployment/
-Watching for file changes with StatReloader
-C:\git\mysql_query_platform\queries\models.py changed, reloading.
-Performing system checks...
-
-System check identified no issues (0 silenced).
-March 06, 2026 - 21:24:33
-Django version 6.0.2, using settings 'mysql_query_platform.settings'
-Starting development server at http://127.0.0.1:8000/
-Quit the server with CTRL-BREAK.
-
-WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
-For more information on production servers see: https://docs.djangoproject.com/en/6.0/howto/deployment/
-Watching for file changes with StatReloader
-C:\git\mysql_query_platform\queries\api_views.py changed, reloading.
-Performing system checks...
-
-System check identified no issues (0 silenced).
-March 06, 2026 - 21:25:09
-Django version 6.0.2, using settings 'mysql_query_platform.settings'
-Starting development server at http://127.0.0.1:8000/
-Quit the server with CTRL-BREAK.
-
-WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
-For more information on production servers see: https://docs.djangoproject.com/en/6.0/howto/deployment/
-Watching for file changes with StatReloader
-[06/Mar/2026 21:26:55] "GET /api-doc/ HTTP/1.1" 200 52631
+[06/Mar/2026 22:05:57] "GET /api/connections/2/databases/ HTTP/1.1" 200 123
+[06/Mar/2026 22:05:58] "GET /api/connections/2/tables/?database=ad_game_platform HTTP/1.1" 200 172
+[06/Mar/2026 22:06:01] "POST /queries/sql/ HTTP/1.1" 200 19553
 Not Found: /.well-known/appspecific/com.chrome.devtools.json
-[06/Mar/2026 21:26:55] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3854
-[06/Mar/2026 21:26:58] "GET /api/connections/2/databases/ HTTP/1.1" 200 123
-[06/Mar/2026 21:27:02] "GET /api/connections/2/tables/ HTTP/1.1" 200 74
-C:\git\mysql_query_platform\queries\utils.py changed, reloading.
-Performing system checks...
-
-System check identified no issues (0 silenced).
-March 06, 2026 - 21:26:53
-Django version 6.0.2, using settings 'mysql_query_platform.settings'
-Starting development server at http://127.0.0.1:8000/
-Quit the server with CTRL-BREAK.
-
-WARNING: This is a development server. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
+[06/Mar/2026 22:06:01] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3854
+[06/Mar/2026 22:06:09] "POST /queries/sql/ HTTP/1.1" 200 19553
+Not Found: /.well-known/appspecific/com.chrome.devtools.json
+[06/Mar/2026 22:06:09] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3854
+[06/Mar/2026 22:06:09] "GET /static/css/styles.css HTTP/1.1" 200 19049
+[06/Mar/2026 22:06:09] "GET /static/js/main.js HTTP/1.1" 200 4821
+Not Found: /favicon.ico
+[06/Mar/2026 22:06:10] "GET /favicon.ico HTTP/1.1" 404 3743
+[06/Mar/2026 22:06:12] "GET /api/connections/2/databases/ HTTP/1.1" 200 123
+[06/Mar/2026 22:06:14] "GET /api/connections/2/tables/?database=ad_game_platform HTTP/1.1" 200 172
+[06/Mar/2026 22:06:17] "POST /queries/sql/ HTTP/1.1" 200 19553
+Not Found: /.well-known/appspecific/com.chrome.devtools.json
+[06/Mar/2026 22:06:17] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3854
+[06/Mar/2026 22:13:14] "GET /api/connections/2/databases/ HTTP/1.1" 200 123
+[06/Mar/2026 22:13:15] "GET /api/connections/2/tables/?database=ad_game_platform HTTP/1.1" 200 172
+[06/Mar/2026 22:13:16] "POST /queries/sql/ HTTP/1.1" 200 19553
+Not Found: /.well-known/appspecific/com.chrome.devtools.json
+[06/Mar/2026 22:13:16] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3854
+[06/Mar/2026 22:16:10] "GET /api/connections/2/databases/ HTTP/1.1" 200 123
+[06/Mar/2026 22:16:11] "GET /api/connections/2/tables/?database=ad_game_platform HTTP/1.1" 200 172
+[06/Mar/2026 22:16:12] "POST /queries/sql/ HTTP/1.1" 200 19553
+Not Found: /.well-known/appspecific/com.chrome.devtools.json
+[06/Mar/2026 22:16:12] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3854
+[06/Mar/2026 22:17:29] "GET /api/connections/2/databases/ HTTP/1.1" 200 123
+[06/Mar/2026 22:17:30] "GET /api/connections/2/tables/?database=ad_game_platform HTTP/1.1" 200 172
+[06/Mar/2026 22:17:31] "POST /queries/sql/ HTTP/1.1" 200 19553
+Not Found: /.well-known/appspecific/com.chrome.devtools.json
+[06/Mar/2026 22:17:31] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3854
+[06/Mar/2026 22:35:54] "GET /api/connections/2/databases/ HTTP/1.1" 200 123
+[06/Mar/2026 22:35:55] "GET /api/connections/2/tables/?database=ad_game_platform HTTP/1.1" 200 172
+[06/Mar/2026 22:35:57] "POST /queries/sql/ HTTP/1.1" 200 19553
+Not Found: /.well-known/appspecific/com.chrome.devtools.json
+[06/Mar/2026 22:35:57] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 3854
+erver. Do not use it in a production setting. Use a production WSGI or ASGI server instead.
 For more information on production servers see: https://docs.djangoproject.com/en/6.0/howto/deployment/
 Watching for file changes with StatReloader
 C:\git\mysql_query_platform\accounts\forms.py changed, reloading.

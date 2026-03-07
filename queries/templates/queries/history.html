@@ -83,6 +83,7 @@
                                     <th>查询人</th>
                                     <th>连接</th>
                                     <th>SQL 语句</th>
+                                    <th>执行时间</th>
                                     <th>操作</th>
                                 </tr>
                             </thead>
@@ -100,6 +101,7 @@
                                                 {% endif %}
                                             </div>
                                         </td>
+                                        <td>{% if query.execution_time %}{{ query.execution_time|floatformat:2 }}ms{% else %}-{% endif %}</td>
                                         <td>
                                             <a href="#" class="btn btn-sm btn-outline-primary" onclick="copySQL('{{ query.id }}')" data-bs-toggle="tooltip" data-bs-placement="top" title="复制 SQL">
                                                 <i class="bi bi-copy"></i>

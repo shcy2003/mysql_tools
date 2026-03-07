@@ -11,4 +11,8 @@ urlpatterns = [
     path('data/', api_views.api_query_data, name='api_query_data'),
     # SQL查询执行API（新SQL查询界面）
     path('execute/', api_views.api_execute_query, name='api_execute_query'),
+    # 获取表结构API
+    path('table_structure/', api_views.api_get_table_structure, name='api_table_structure'),
+    # 导出Excel API
+    path('export_excel/', api_views.api_export_excel, name='api_export_excel'),
 ]

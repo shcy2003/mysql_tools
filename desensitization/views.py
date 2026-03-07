@@ -32,6 +32,7 @@ def masking_rule_create_view(request):
 
         # 手动构建数据
         data = {
+            'name': request.POST.get('name'),
             'column_names': column_names,
             'masking_type': request.POST.get('masking_type'),
             'masking_params': request.POST.get('masking_params'),
@@ -78,6 +79,7 @@ def masking_rule_edit_view(request, rule_id):
 
         # 手动构建数据
         data = {
+            'name': request.POST.get('name'),
             'column_names': column_names,
             'masking_type': request.POST.get('masking_type'),
             'masking_params': request.POST.get('masking_params'),

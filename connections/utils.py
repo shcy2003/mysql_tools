@@ -55,16 +55,60 @@ def get_connection_by_id(connection_id):
 def execute_query(connection_params, query, params=None):
     """
     执行 SQL 查询（使用连接池）
-    
+
     Args:
         connection_params: MySQL连接参数
         query: SQL查询语句
         params: 查询参数（用于参数化查询）
-    
+
     Returns:
         tuple: (success, results_or_error)
     """
-    return execute_query_with_pool(connection_params, query, params)
+    # 检查是否需要切换数据库
+    database = connection_params.get('database')
+    if database:
+        # 创建一个新的不包含数据库的连接参数，用于获取连接
+        pool_params = connection_params.copy()
+        pool_params.pop('database', None)
+
+        connection = None
+        cursor = None
+
+        try:
+            connection = get_connection_from_pool(pool_params)
+            cursor = connection.cursor(dictionary=True)
+
+            # 先切换到指定数据库
+            cursor.execute(f"USE `{database}`")
+
+            # 再执行查询
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+
+            results = cursor.fetchall()
+
+            cursor.close()
+            release_connection(connection)
+
+            return True, results
+
+        except Error as e:
+            return False, str(e)
+        except Exception as e:
+            return False, f"查询执行错误: {str(e)}"
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if connection:
+                release_connection(connection)
+    else:
+        # 没有指定数据库，使用连接池默认方式
+        return execute_query_with_pool(connection_params, query, params)
 
 
 def get_databases(connection_params):

@@ -282,6 +282,297 @@ def api_query_data(request):
 
 
 @login_required
+@require_http_methods(["GET"])
+def api_get_table_structure(request):
+    """
+    获取表结构API
+
+    GET /api/queries/table_structure/?connection_id=1&table=users&database=mydb
+
+    请求参数:
+        - connection_id: 数据库连接ID (必需)
+        - table: 表名 (必需)
+        - database: 数据库名 (可选，如果连接参数中没有指定数据库则必需)
+
+    响应:
+        {
+            "code": 0,
+            "message": "success",
+            "data": [
+                {
+                    "Field": "id",
+                    "Type": "int(11)",
+                    "Null": "NO",
+                    "Key": "PRI",
+                    "Default": null,
+                    "Extra": "auto_increment"
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        # 获取参数
+        connection_id = request.GET.get('connection_id')
+        table = request.GET.get('table')
+        database = request.GET.get('database')
+
+        # 验证必需参数
+        if not connection_id or not table:
+            return JsonResponse({
+                "code": 400,
+                "message": "缺少必需参数: connection_id 和 table"
+            }, status=400)
+
+        # 验证表名
+        if not validate_identifier(table):
+            return JsonResponse({
+                "code": 400,
+                "message": f"非法的表名: {table}"
+            }, status=400)
+
+        # 获取连接
+        try:
+            if request.user.role == 'admin':
+                connection = MySQLConnection.objects.get(id=connection_id)
+            else:
+                connection = MySQLConnection.objects.get(
+                    id=connection_id,
+                    created_by=request.user
+                )
+        except MySQLConnection.DoesNotExist:
+            return JsonResponse({
+                "code": 404,
+                "message": "连接不存在或无权限访问"
+            }, status=404)
+
+        # 执行查询获取表结构
+        try:
+            connection_params = connection.get_connection_params()
+
+            # 如果指定了database参数，使用它
+            if database:
+                connection_params['database'] = database
+
+            # 使用 mysql.connector 直接连接（不使用连接池，因为这是一个快速查询）
+            import mysql.connector
+            conn = mysql.connector.connect(**connection_params)
+            cursor = conn.cursor(dictionary=True)
+
+            # 执行 SHOW COLUMNS 查询获取表结构
+            cursor.execute(f"SHOW COLUMNS FROM `{table}`")
+            columns = cursor.fetchall()
+
+            cursor.close()
+            conn.close()
+
+            return JsonResponse({
+                "code": 0,
+                "message": "success",
+                "data": columns
+            })
+
+        except mysql.connector.Error as e:
+            return JsonResponse({
+                "code": 500,
+                "message": f"数据库查询错误: {str(e)}"
+            }, status=500)
+
+    except Exception as e:
+        return JsonResponse({
+            "code": 500,
+            "message": f"服务器内部错误: {str(e)}"
+        }, status=500)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_export_excel(request):
+    """
+    导出查询结果为Excel文件API
+
+    POST /api/queries/export_excel/
+
+    请求体 (JSON):
+    {
+        "connection_id": 1,
+        "database": "mydb",
+        "sql": "SELECT * FROM users WHERE age > 18"
+    }
+
+    响应: Excel文件内容
+    """
+    try:
+        # 解析请求体 - 支持JSON和form-data两种格式
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            connection_id = data.get('connection_id')
+            database = data.get('database')
+            sql = data.get('sql', '').strip()
+        else:
+            connection_id = request.POST.get('connection_id')
+            database = request.POST.get('database')
+            sql = request.POST.get('sql', '').strip()
+
+        # 验证必需参数
+        if not connection_id:
+            return JsonResponse({
+                "code": 400,
+                "message": "缺少必需参数: connection_id"
+            }, status=400)
+        if not sql:
+            return JsonResponse({
+                "code": 400,
+                "message": "缺少必需参数: sql"
+            }, status=400)
+
+        # 只允许 SELECT 查询
+        sql_upper = sql.upper()
+        if not sql_upper.startswith('SELECT'):
+            return JsonResponse({
+                "code": 400,
+                "message": "只允许执行 SELECT 查询"
+            }, status=400)
+
+        # 检查危险关键字（简单防护）
+        dangerous_keywords = ['DELETE', 'DROP', 'TRUNCATE', 'INSERT', 'UPDATE', 'ALTER']
+        for keyword in dangerous_keywords:
+            if keyword in sql_upper and keyword not in sql_upper.split('FROM')[0].split('WHERE')[0]:
+                pattern = r'\b' + keyword + r'\b'
+                if re.search(pattern, sql_upper):
+                    return JsonResponse({
+                        "code": 400,
+                        "message": f"检测到危险关键字: {keyword}"
+                    }, status=400)
+
+        # 获取连接并检查权限
+        try:
+            if request.user.role == 'admin':
+                connection = MySQLConnection.objects.get(id=connection_id)
+            else:
+                connection = MySQLConnection.objects.get(
+                    id=connection_id,
+                    created_by=request.user
+                )
+        except MySQLConnection.DoesNotExist:
+            return JsonResponse({
+                "code": 404,
+                "message": "连接不存在或无权限访问"
+            }, status=404)
+
+        # 执行查询
+        import time
+        start_time = time.time()
+
+        try:
+            from connections.pool import get_connection_from_pool, release_connection
+
+            connection_params = connection.get_connection_params()
+            # 如果指定了database参数，需要先切换到该数据库
+            if database:
+                # 创建一个新的不包含数据库的连接参数，用于获取连接
+                pool_params = connection_params.copy()
+                pool_params.pop('database', None)
+
+                conn = get_connection_from_pool(pool_params)
+                cursor = conn.cursor(dictionary=True)
+
+                # 先切换到指定数据库
+                cursor.execute(f"USE `{database}`")
+
+                # 再执行查询
+                cursor.execute(sql)
+                rows = cursor.fetchall()
+
+                # 获取列名
+                columns = [desc[0] for desc in cursor.description] if cursor.description else []
+
+                cursor.close()
+                release_connection(conn)
+            else:
+                # 没有指定数据库，使用连接池默认方式
+                conn = get_connection_from_pool(connection_params)
+                cursor = conn.cursor(dictionary=True)
+                cursor.execute(sql)
+                rows = cursor.fetchall()
+
+                # 获取列名
+                columns = [desc[0] for desc in cursor.description] if cursor.description else []
+
+                cursor.close()
+                release_connection(conn)
+
+            # 应用脱敏规则
+            from desensitization.utils import apply_masking_rules
+            rows = apply_masking_rules(connection, sql, rows, request.user)
+
+            # 生成Excel文件
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, PatternFill, Alignment
+            import io
+
+            wb = Workbook()
+            ws = wb.active
+            ws.title = '查询结果'
+
+            # 设置表头样式
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="4CAF50", end_color="4CAF50", fill_type="solid")
+            header_alignment = Alignment(horizontal="center", vertical="center")
+
+            # 写入表头
+            for col_num, column_title in enumerate(columns, 1):
+                cell = ws.cell(row=1, column=col_num, value=column_title)
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+                # 设置列宽
+                column_letter = chr(64 + col_num) if col_num <= 26 else 'A' + chr(64 + col_num - 26)
+                ws.column_dimensions[column_letter].width = max(15, len(str(column_title)) * 1.2)
+
+            # 写入数据
+            for row_num, row in enumerate(rows, 2):
+                for col_num, column_title in enumerate(columns, 1):
+                    cell_value = row.get(column_title, '')
+                    cell = ws.cell(row=row_num, column=col_num, value=str(cell_value) if cell_value is not None else '')
+                    # 设置数据列对齐
+                    cell.alignment = Alignment(horizontal="left", vertical="center")
+
+            # 保存到内存
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+
+            # 构建响应
+            from django.http import HttpResponse
+            response = HttpResponse(output.read(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            response['Content-Disposition'] = 'attachment; filename="query_result.xlsx"'
+            return response
+
+        except mysql.connector.Error as e:
+            execution_time = (time.time() - start_time) * 1000
+            return JsonResponse({
+                "code": 500,
+                "message": f"数据库查询错误: {str(e)}"
+            }, status=500)
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            "code": 400,
+            "message": "JSON格式错误"
+        }, status=400)
+    except Exception as e:
+        import traceback
+        print(f"API导出Excel出错: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            "code": 500,
+            "message": f"服务器内部错误: {str(e)}"
+        }, status=500)
+
+
+@login_required
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_execute_query(request):
@@ -314,6 +605,7 @@ def api_execute_query(request):
         data = json.loads(request.body)
         connection_id = data.get('connection_id')
         sql = data.get('sql', '').strip()
+        database = data.get('database', None)
         
         # 验证必需参数
         if not connection_id:
@@ -370,11 +662,25 @@ def api_execute_query(request):
         
         try:
             from connections.pool import get_connection_from_pool, release_connection
-            
+
             connection_params = connection.get_connection_params()
-            conn = get_connection_from_pool(connection_params)
-            cursor = conn.cursor(dictionary=True)
-            
+
+            # 如果指定了database参数，需要先切换到该数据库
+            if database:
+                # 创建一个新的不包含数据库的连接参数，用于获取连接
+                pool_params = connection_params.copy()
+                pool_params.pop('database', None)
+
+                conn = get_connection_from_pool(pool_params)
+                cursor = conn.cursor(dictionary=True)
+
+                # 先切换到指定数据库
+                cursor.execute(f"USE `{database}`")
+            else:
+                # 没有指定数据库，使用连接池默认方式
+                conn = get_connection_from_pool(connection_params)
+                cursor = conn.cursor(dictionary=True)
+
             # 添加 LIMIT 10 限制（如果原查询没有 LIMIT）
             limited_sql = sql
             if 'LIMIT' not in sql_upper:
@@ -382,16 +688,20 @@ def api_execute_query(request):
                 limited = True
             else:
                 limited = False
-            
+
             cursor.execute(limited_sql)
             rows = cursor.fetchall()
-            
+
             # 获取列名
             columns = [desc[0] for desc in cursor.description] if cursor.description else []
-            
+
             cursor.close()
             release_connection(conn)
-            
+
+            # 应用脱敏规则
+            from desensitization.utils import apply_masking_rules
+            rows = apply_masking_rules(connection, sql, rows, request.user)
+
             execution_time = (time.time() - start_time) * 1000
             
             # 记录查询历史和审计日志（不记录 sql，查询历史已有）

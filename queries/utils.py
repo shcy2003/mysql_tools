@@ -3,7 +3,7 @@ from connections.utils import execute_query
 from desensitization.utils import apply_masking_rules
 
 
-def run_query(connection, sql, user, request=None):
+def run_query(connection, sql, user, request=None, database=None):
     """执行查询并记录查询历史和审计日志"""
     # 检查是否是 SELECT 查询
     if not sql.strip().lower().startswith('select'):
@@ -11,8 +11,12 @@ def run_query(connection, sql, user, request=None):
 
     start_time = time.time()
 
-    # 执行查询
-    success, result = execute_query(connection.get_connection_params(), sql)
+    # 执行查询 - 支持使用指定的数据库（如果提供）
+    connection_params = connection.get_connection_params()
+    if database:
+        connection_params['database'] = database
+
+    success, result = execute_query(connection_params, sql)
     execution_time = (time.time() - start_time) * 1000
 
     if success:

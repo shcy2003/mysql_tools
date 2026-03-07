@@ -4,13 +4,41 @@
 
 {% block page_title %}编辑脱敏规则{% endblock %}
 
+{% block extra_css %}
+<style>
+    .column-tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 12px;
+        margin: 4px;
+        background: #e9ecef;
+        border-radius: 20px;
+        font-size: 14px;
+    }
+    .column-tag .btn-close {
+        margin-left: 8px;
+        font-size: 10px;
+    }
+    .column-list {
+        min-height: 50px;
+        padding: 10px;
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+    }
+    .column-list.has-items {
+        border-style: solid;
+        background: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-lg-12 mb-4">
         <div class="card">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">
-                    <i class="bi bi-pencil"></i> 编辑脱敏规则
+                    <i class="bi bi-pencil"></i> 编辑脱敏规则（全局配置）
                 </h5>
             </div>
             <div class="card-body">
@@ -25,32 +53,41 @@
 
                 <form method="POST" id="masking-rule-form">
                     {% csrf_token %}
+                    <!-- 隐藏字段存储列名列表 -->
+                    <input type="hidden" name="column_names_json" id="column_names_json" value="">
 
                     <div class="row mb-3">
                         <div class="col-md-12">
-                            <label for="connection" class="form-label">选择 MySQL 连接</label>
-                            <select class="form-select" id="connection" name="connection" disabled>
-                                <option value="{{ form.connection.value }}">{{ form.connection.value }}</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="table_name" class="form-label">表名</label>
-                            <input type="text" class="form-control" id="table_name" name="table_name"
-                                   value="{{ form.table_name.value }}" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="column_name" class="form-label">列名</label>
-                            <input type="text" class="form-control" id="column_name" name="column_name"
-                                   value="{{ form.column_name.value }}" required>
+                            <label for="name" class="form-label">
+                                <i class="bi bi-tag"></i> 规则名称
+                            </label>
+                            <input type="text" class="form-control" id="name" name="name"
+                                   value="{{ form.name.value }}" placeholder="请输入规则名称，如：手机号脱敏" required>
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-12">
-                            <label for="masking_type" class="form-label">脱敏类型</label>
+                            <label class="form-label">
+                                <i class="bi bi-columns"></i> 列名
+                                <span class="text-muted">(支持多个，点击+号添加)</span>
+                            </label>
+                            <div class="d-flex gap-2 mb-2">
+                                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addColumnModal">
+                                    <i class="bi bi-plus-lg"></i> 添加列名
+                                </button>
+                            </div>
+                            <div class="column-list" id="column-list">
+                                <span class="text-muted">暂无列名，请点击上方按钮添加</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="masking_type" class="form-label">
+                                <i class="bi bi-shield-lock"></i> 脱敏类型
+                            </label>
                             <select class="form-select" id="masking_type" name="masking_type" onchange="toggleMaskingParams()">
                                 <option value="full" {% if form.masking_type.value == 'full' %}selected{% endif %}>完全脱敏</option>
                                 <option value="partial" {% if form.masking_type.value == 'partial' %}selected{% endif %}>部分脱敏</option>
@@ -70,7 +107,7 @@
 
                     <div class="row mb-3">
                         <div class="col-md-12">
-                            <button type="submit" class="btn btn-primary btn-lg">
+                            <button type="submit" class="btn btn-primary btn-lg" id="btn-save">
                                 <i class="bi bi-save"></i> 保存规则
                             </button>
                             <a href="{% url 'desensitization:masking_rule_list' %}" class="btn btn-secondary btn-lg">
@@ -82,6 +119,28 @@
                         </div>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加列名模态框 -->
+<div class="modal fade" id="addColumnModal" tabindex="-1" aria-labelledby="addColumnModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addColumnModalLabel">添加列名</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="new_column_name" class="form-label">列名</label>
+                    <input type="text" class="form-control" id="new_column_name" placeholder="请输入列名，如：phone、id_card、email等">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="btn-add-column">添加</button>
             </div>
         </div>
     </div>
@@ -170,6 +229,32 @@
 
 {% block extra_js %}
 <script>
+    var columnList = [];
+
+    function renderColumns() {
+        const container = $('#column-list');
+        if (columnList.length === 0) {
+            container.html('<span class="text-muted">暂无列名，请点击上方按钮添加</span>');
+            container.removeClass('has-items');
+        } else {
+            let html = '';
+            columnList.forEach(function(col, index) {
+                html += '<span class="column-tag" id="col-tag-' + index + '">' +
+                        col +
+                        '<button type="button" class="btn-close" onclick="removeColumn(' + index + ')"></button></span>';
+            });
+            container.html(html);
+            container.addClass('has-items');
+        }
+        // 更新隐藏字段
+        $('#column_names_json').val(JSON.stringify(columnList));
+    }
+
+    function removeColumn(index) {
+        columnList.splice(index, 1);
+        renderColumns();
+    }
+
     function toggleMaskingParams() {
         const maskingType = $('#masking_type').val();
         const paramsContainer = $('#masking-params-container');
@@ -195,7 +280,49 @@
     }
 
     $(document).ready(function() {
+        console.log('Document ready, initializing...');
         toggleMaskingParams();
+
+        // 从表单初始化列名列表
+        {% if form.column_names.value %}
+            try {
+                var savedColumns = JSON.parse('{{ form.column_names.value|escapejs }}');
+                if (Array.isArray(savedColumns) && savedColumns.length > 0) {
+                    columnList = savedColumns;
+                    renderColumns();
+                }
+            } catch (e) {
+                console.error('解析列名列表失败:', e);
+            }
+        {% endif %}
+
+        // 添加列名按钮点击事件
+        $('#btn-add-column').on('click', function() {
+            console.log('Add column button clicked');
+            const newColumn = $('#new_column_name').val().trim();
+            if (!newColumn) {
+                alert('请输入列名');
+                return;
+            }
+            // 检查是否已存在
+            if (columnList.indexOf(newColumn) !== -1) {
+                alert('该列名已存在');
+                return;
+            }
+            columnList.push(newColumn);
+            renderColumns();
+            $('#new_column_name').val('');
+            $('#addColumnModal').modal('hide');
+        });
+
+        // 表单提交前验证
+        $('#masking-rule-form').on('submit', function(e) {
+            if (columnList.length === 0) {
+                e.preventDefault();
+                alert('请至少添加一个列名');
+                return;
+            }
+        });
     });
 </script>
 {% endblock %}
