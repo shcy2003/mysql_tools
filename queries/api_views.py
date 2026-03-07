@@ -577,8 +577,8 @@ def api_export_excel(request):
 @require_http_methods(["POST"])
 def api_execute_query(request):
     """
-    执行 SQL 查询（仅支持 SELECT，限制返回10条）
-    
+    执行 SQL 查询（仅支持 SELECT）
+
     POST /api/queries/execute/
     
     请求体:
@@ -641,19 +641,13 @@ def api_execute_query(request):
                         "message": f"检测到危险关键字: {keyword}"
                     }, status=400)
         
-        # 获取连接并检查权限
+        # 获取连接（所有登录用户都可以使用任意连接）
         try:
-            if request.user.role == 'admin':
-                connection = MySQLConnection.objects.get(id=connection_id)
-            else:
-                connection = MySQLConnection.objects.get(
-                    id=connection_id, 
-                    created_by=request.user
-                )
+            connection = MySQLConnection.objects.get(id=connection_id)
         except MySQLConnection.DoesNotExist:
             return JsonResponse({
                 "code": 404,
-                "message": "连接不存在或无权限访问"
+                "message": "连接不存在"
             }, status=404)
         
         # 执行查询
@@ -681,16 +675,10 @@ def api_execute_query(request):
                 conn = get_connection_from_pool(connection_params)
                 cursor = conn.cursor(dictionary=True)
 
-            # 添加 LIMIT 10 限制（如果原查询没有 LIMIT）
-            limited_sql = sql
-            if 'LIMIT' not in sql_upper:
-                limited_sql = f"{sql} LIMIT 10"
-                limited = True
-            else:
-                limited = False
-
-            cursor.execute(limited_sql)
+            # 执行查询（返回所有结果，不限制行数）
+            cursor.execute(sql)
             rows = cursor.fetchall()
+            limited = False
 
             # 获取列名
             columns = [desc[0] for desc in cursor.description] if cursor.description else []

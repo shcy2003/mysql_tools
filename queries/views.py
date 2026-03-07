@@ -141,10 +141,7 @@ def query_history_view(request):
 
 def get_available_connections(user):
     """获取用户可以使用的连接"""
-    if user.role == 'admin':
-        return MySQLConnection.objects.all()
-    else:
-        return MySQLConnection.objects.filter(created_by=user)
+    return MySQLConnection.objects.all()
 
 
 @login_required

@@ -67,11 +67,11 @@ class UserForm(forms.ModelForm):
     """用户管理表单（创建和编辑用户）"""
     password = forms.CharField(
         label='密码',
-        required=False,
+        required=True,
         widget=forms.PasswordInput(
             attrs={
                 'class': 'form-control',
-                'placeholder': '留空则不修改密码'
+                'placeholder': '请输入密码'
             }
         )
     )
@@ -105,7 +105,19 @@ class UserForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        # 检查是否是编辑模式（instance 存在）
+        is_edit = kwargs.get('instance') is not None
         super().__init__(*args, **kwargs)
+
+        if is_edit:
+            # 编辑用户时密码可选
+            self.fields['password'].required = False
+            self.fields['password'].widget.attrs['placeholder'] = '留空则不修改密码'
+        else:
+            # 创建用户时密码必填
+            self.fields['password'].required = True
+            self.fields['password'].widget.attrs['placeholder'] = '请输入密码'
+
         # 确保所有字段都有正确的 class
         for field_name, field in self.fields.items():
             if field_name == 'is_active':

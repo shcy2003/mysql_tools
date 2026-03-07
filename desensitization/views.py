@@ -1,6 +1,9 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.http import JsonResponse
 from .forms import MaskingRuleForm
 from .models import MaskingRule
 from audit.utils import create_audit_log
@@ -128,3 +131,50 @@ def masking_rule_delete_view(request, rule_id):
         return redirect('desensitization:masking_rule_list')
 
     return render(request, 'desensitization/delete.html', {'rule': rule})
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(['POST'])
+def api_toggle_rule_status(request, rule_id):
+    """
+    启用/禁用脱敏规则API
+    POST /api/desensitization/toggle/<int:rule_id>/
+
+    返回: {"code": 0, "message": "操作成功", "data": {"is_enabled": true/false}}
+    """
+    try:
+        rule = get_object_or_404(MaskingRule, id=rule_id)
+
+        if request.user.role != 'admin':
+            return JsonResponse({
+                'code': 403,
+                'message': '您没有权限执行此操作',
+                'data': {}
+            })
+
+        # 切换状态
+        rule.is_enabled = not rule.is_enabled
+        rule.save()
+
+        # 添加审计日志
+        action = 'enable_masking' if rule.is_enabled else 'disable_masking'
+        create_audit_log(
+            user=request.user,
+            action=action,
+            ip_address=get_client_ip(request),
+            connection=None
+        )
+
+        return JsonResponse({
+            'code': 0,
+            'message': f'规则已{"启用" if rule.is_enabled else "禁用"}',
+            'data': {'is_enabled': rule.is_enabled}
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'code': 500,
+            'message': f'操作失败: {str(e)}',
+            'data': {}
+        })

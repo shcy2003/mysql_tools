@@ -112,7 +112,7 @@
 
                     <div class="row mb-3">
                         <div class="col-md-12">
-                            <button type="button" class="btn btn-test btn-lg" id="btn-test-connection" onclick="testConnection()">
+                            <button type="button" class="btn btn-test btn-lg" id="btn-test-connection">
                                 <i class="bi bi-plug"></i> 测试连接
                             </button>
                             <div id="test-result" class="test-result"></div>
@@ -138,21 +138,12 @@
 
 {% block extra_js %}
 <script>
-    // Check if jQuery is loaded
-    if (typeof $ === 'undefined') {
-        console.error('jQuery is not loaded!');
-        alert('页面加载错误，请刷新重试');
-    }
-    console.log('Connection page script loaded');
+    // 页面加载完成后初始化
+    $(document).ready(function() {
+        console.log('Connection create page script loaded');
 
-    // 全局变量
-    var connectionTested = false;
-
-    // 全局函数，直接通过 onclick 调用
-    function testConnection() {
-        console.log('Test connection button clicked (onclick)');
-        var btn = $('#btn-test-connection');
-        var resultDiv = $('#test-result');
+        // 全局变量
+        var connectionTested = false;
 
         // CSRF token 获取函数
         function getCsrfToken() {
@@ -160,6 +151,12 @@
                 || document.cookie.match(/csrftoken=([^;]+)/)?.[1]
                 || '';
         }
+
+        // 测试连接函数
+        function testConnection() {
+            console.log('Test connection button clicked');
+            var btn = $('#btn-test-connection');
+            var resultDiv = $('#test-result');
 
             // 获取表单数据
             var host = $('#host').val();
@@ -170,14 +167,14 @@
 
             // 验证必填字段
             if (!host || !port || !database || !username) {
-                resultDiv.removeClass('success').addClass('error');
+                resultDiv.removeClass('success').addClass('error').show();
                 resultDiv.html('<i class="bi bi-exclamation-triangle"></i> 请填写完整的主机、端口、数据库和用户名');
                 return;
             }
 
             // 显示加载状态
             btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>测试中...');
-            resultDiv.hide();
+            resultDiv.hide().removeClass('success error');
 
             // 发送测试请求
             $.ajax({
@@ -197,12 +194,12 @@
                 success: function(response) {
                     console.log('Test connection response:', response);
                     if (response.code === 0) {
-                        resultDiv.removeClass('error').addClass('success');
+                        resultDiv.removeClass('error').addClass('success').show();
                         resultDiv.html('<i class="bi bi-check-circle"></i> ' + response.message);
                         connectionTested = true;
                         $('#btn-save').prop('disabled', false);
                     } else {
-                        resultDiv.removeClass('success').addClass('error');
+                        resultDiv.removeClass('success').addClass('error').show();
                         resultDiv.html('<i class="bi bi-exclamation-triangle"></i> ' + response.message);
                         connectionTested = false;
                         $('#btn-save').prop('disabled', true);
@@ -211,8 +208,12 @@
                 error: function(xhr, status, error) {
                     console.error('Test connection error:', status, error);
                     console.error('Response:', xhr.responseText);
-                    resultDiv.removeClass('success').addClass('error');
-                    resultDiv.html('<i class="bi bi-exclamation-triangle"></i> 测试失败: ' + error);
+                    resultDiv.removeClass('success').addClass('error').show();
+                    var errorMsg = error;
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    resultDiv.html('<i class="bi bi-exclamation-triangle"></i> 测试失败: ' + errorMsg);
                     connectionTested = false;
                     $('#btn-save').prop('disabled', true);
                 },
@@ -220,10 +221,11 @@
                     btn.prop('disabled', false).html('<i class="bi bi-plug"></i> 测试连接');
                 }
             });
-    }
+        }
 
-    // 页面加载时初始化
-    $(document).ready(function() {
+        // 绑定测试连接按钮点击事件
+        $('#btn-test-connection').on('click', testConnection);
+
         // 任何表单字段改变时，重置测试状态
         $('#connection-form input').on('change input', function() {
             connectionTested = false;

@@ -19,6 +19,15 @@ def audit_log_list_view(request):
     user_id = request.GET.get('user')
     connection_id = request.GET.get('connection')
     date_range = request.GET.get('date_range')
+    min_time = request.GET.get('min_time')
+
+    if min_time:
+        try:
+            # 转换为毫秒（execution_time 字段单位是ms）
+            min_time_ms = float(min_time) * 1000
+            logs = logs.filter(execution_time__gte=min_time_ms)
+        except:
+            pass
 
     if action:
         logs = logs.filter(action=action)
@@ -73,6 +82,7 @@ def audit_log_list_view(request):
         'selected_user': user_id,
         'selected_connection': connection_id,
         'selected_date_range': date_range,
+        'selected_min_time': min_time,
     }
 
     return render(request, 'audit/list.html', context)

@@ -33,7 +33,9 @@
       "Bash(pip install drf-yasg)",
       "Bash(xargs ls -la)",
       "Bash(pip install openpyxl)",
-      "Bash(findstr :8000)"
+      "Bash(findstr :8000)",
+      "Bash(tasklist)",
+      "Bash(findstr python)"
     ]
   }
 }

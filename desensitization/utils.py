@@ -18,7 +18,7 @@ def apply_masking_rules(connection, sql, result, user):
 
     try:
         # 获取所有全局脱敏规则
-        rules = MaskingRule.objects.all()
+        rules = MaskingRule.objects.filter(is_enabled=True)
 
         if not rules:
             return result

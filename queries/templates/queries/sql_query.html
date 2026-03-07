@@ -229,7 +229,7 @@
                             </label>
                             <textarea class="form-control" id="sql-editor" name="sql">{{ sql|default_if_none:'' }}</textarea>
                             <div class="form-text">
-                                <i class="bi bi-lightbulb me-1"></i>提示：只支持 SELECT 查询语句，最多返回 10 条记录
+                                <i class="bi bi-lightbulb me-1"></i>提示：只支持 SELECT 查询语句
                             </div>
                         </div>
 
@@ -437,9 +437,84 @@
         console.log('Inserting table from sidebar:', database, table);
         // 确保数据库被选中
         window.updateSqlQueryDatabase(database);
-        // 覆盖SQL编辑器内容
+
+        // 获取连接ID
+        var connectionId = $('#connection-hidden').val();
+        if (!connectionId) {
+            alert('请先选择数据库连接');
+            return;
+        }
+
+        // 设置SQL编辑器内容
         editor.setValue('SELECT * FROM `' + table + '` LIMIT 10');
-        editor.focus();
+
+        // 隐藏之前的结果和错误信息
+        $('.result-card').remove();
+        $('.sql-error').remove();
+
+        // 显示加载状态
+        var tempResultArea = $('<div class="result-card card" id="temp-result"><div class="card-body text-center py-4"><div class="spinner-border"></div><div class="mt-2">加载中...</div></div></div>');
+        $('#sql-query-form').after(tempResultArea);
+
+        // 执行查询获取10条数据
+        $.ajax({
+            url: '/api/queries/execute/',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                connection_id: connectionId,
+                database: database,
+                sql: 'SELECT * FROM `' + table + '` LIMIT 10'
+            }),
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+            },
+            success: function(response) {
+                if (response.code === 0) {
+                    // 获取表的总行数
+                    $.ajax({
+                        url: '/api/queries/execute/',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            connection_id: connectionId,
+                            database: database,
+                            sql: 'SELECT COUNT(*) as total FROM `' + table + '`'
+                        }),
+                        beforeSend: function(xhr) {
+                            xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+                        },
+                        success: function(countResponse) {
+                            var totalRows = 0;
+                            if (countResponse.code === 0 && countResponse.data.rows.length > 0) {
+                                totalRows = countResponse.data.rows[0].total || 0;
+                            }
+                            // 移除临时加载区域
+                            tempResultArea.remove();
+                            // 显示查询结果，同时显示总行数
+                            displayQueryResultWithTotal(response.data, totalRows, table);
+                        },
+                        error: function() {
+                            // 即使获取总行数失败，也显示数据
+                            tempResultArea.remove();
+                            displayQueryResultWithTotal(response.data, null, table);
+                        }
+                    });
+                } else {
+                    tempResultArea.remove();
+                    displayQueryError(response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                var errorMessage = '查询失败: ' + error;
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    errorMessage = response.message || errorMessage;
+                } catch (e) {}
+                tempResultArea.remove();
+                displayQueryError(errorMessage);
+            }
+        });
     };
 
     function clearQuery() {
@@ -608,15 +683,44 @@
         });
     });
 
+    // 全局变量存储当前查询数据和分页状态
+    var currentQueryData = null;
+    var currentPage = 1;
+    var pageSize = 100;
+    var tableNameForDisplay = null;
+    var totalRowsForDisplay = null;
+
     // 显示查询结果
     function displayQueryResult(data) {
-        var $resultArea = $('<div class="result-card card"></div>');
+        currentQueryData = data;
+        currentPage = 1;
+        renderQueryResult();
+    }
+
+    // 渲染查询结果（带分页）
+    function renderQueryResult() {
+        if (!currentQueryData) return;
+
+        var data = currentQueryData;
+        var totalRows = data.rows.length;
+        var totalPages = Math.ceil(totalRows / pageSize);
+        var startIndex = (currentPage - 1) * pageSize;
+        var endIndex = Math.min(startIndex + pageSize, totalRows);
+        var pageRows = data.rows.slice(startIndex, endIndex);
+
+        var $resultArea = $('<div class="result-card card" id="query-result"></div>');
 
         var headerHtml = '<div class="d-flex justify-content-between align-items-center p-3 border-bottom">' +
                         '<h6 class="mb-0">' +
-                        '<i class="bi bi-table text-success me-2"></i>查询结果' +
+                        '<i class="bi bi-table text-success me-2"></i>' + (window.tableNameForDisplay ? window.tableNameForDisplay + ' - ' : '') + '查询结果' +
                         '</h6>' +
                         '<div class="d-flex align-items-center gap-2">';
+
+        if (window.totalRowsForDisplay !== null && window.totalRowsForDisplay !== undefined) {
+            headerHtml += '<span class="badge bg-info">' +
+                        '<i class="bi bi-list-ol me-1"></i>表总行数: ' + window.totalRowsForDisplay +
+                        '</span>';
+        }
 
         if (data.execution_time_ms) {
             headerHtml += '<span class="badge bg-success">' +
@@ -643,9 +747,9 @@
         $thead.append($headerRow);
         $table.append($thead);
 
-        // 生成数据行
+        // 生成分页数据行
         var $tbody = $('<tbody></tbody>');
-        data.rows.forEach(function(row) {
+        pageRows.forEach(function(row) {
             var $row = $('<tr></tr>');
             data.columns.forEach(function(column) {
                 var value = row[column];
@@ -658,21 +762,100 @@
         $tableWrapper.append($table);
         $cardBody.append($tableWrapper);
 
+        // 生成分页控制
         var $footer = $('<div class="card-footer bg-white">' +
+                        '<div class="d-flex justify-content-between align-items-center">' +
                         '<small class="text-muted">' +
-                        '<i class="bi bi-info-circle me-1"></i>共返回 ' + data.rows.length + ' 条记录' +
-                        '</small></div>');
+                        '<i class="bi bi-info-circle me-1"></i>共 ' + totalRows + ' 条记录' +
+                        (totalPages > 1 ? '，当前第 ' + currentPage + '/' + totalPages + ' 页' : '') +
+                        '</small>');
+
+        if (totalPages > 1) {
+            $footer.append('<div class="pagination pagination-sm mb-0">');
+            var paginationHtml = '';
+
+            // 上一页按钮
+            paginationHtml += '<li class="page-item ' + (currentPage === 1 ? 'disabled' : '') + '">' +
+                            '<a class="page-link" href="javascript:void(0)" onclick="changePage(' + (currentPage - 1) + ')">' +
+                            '<i class="bi bi-chevron-left"></i></a></li>';
+
+            // 页码按钮（最多显示5个页码）
+            var startPage = Math.max(1, currentPage - 2);
+            var endPage = Math.min(totalPages, currentPage + 2);
+            if (startPage > 1) {
+                paginationHtml += '<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(1)">1</a></li>';
+                if (startPage > 2) {
+                    paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                }
+            }
+
+            for (var i = startPage; i <= endPage; i++) {
+                paginationHtml += '<li class="page-item ' + (i === currentPage ? 'active' : '') + '">' +
+                                '<a class="page-link" href="javascript:void(0)" onclick="changePage(' + i + ')">' + i + '</a></li>';
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                }
+                paginationHtml += '<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="changePage(' + totalPages + ')">' + totalPages + '</a></li>';
+            }
+
+            // 下一页按钮
+            paginationHtml += '<li class="page-item ' + (currentPage === totalPages ? 'disabled' : '') + '">' +
+                            '<a class="page-link" href="javascript:void(0)" onclick="changePage(' + (currentPage + 1) + ')">' +
+                            '<i class="bi bi-chevron-right"></i></a></li>';
+
+            $footer.append(paginationHtml);
+            $footer.append('</div>');
+        }
+
+        $footer.append('</div></div>');
 
         $resultArea.append($cardBody);
         $resultArea.append($footer);
 
-        // 插入到页面中
-        $('#sql-query-form').after($resultArea);
+        // 替换或插入到页面中
+        var existingResult = $('#query-result');
+        if (existingResult.length > 0) {
+            existingResult.replaceWith($resultArea);
+        } else {
+            $('#sql-query-form').after($resultArea);
+        }
 
         // 重新绑定导出Excel事件
         $('#export-excel-btn').click(function() {
             window.exportExcel();
         });
+    }
+
+    // 切换页码
+    function changePage(page) {
+        if (!currentQueryData) return;
+        var totalPages = Math.ceil(currentQueryData.rows.length / pageSize);
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        renderQueryResult();
+        // 滚动到表格顶部
+        var resultCard = $('#query-result');
+        if (resultCard.length > 0) {
+            $('html, body').animate({
+                scrollTop: resultCard.offset().top - 100
+            }, 200);
+        }
+    }
+
+    // 显示查询结果，包含表的总行数
+    function displayQueryResultWithTotal(data, totalRows, tableName) {
+        // 使用与常规查询相同的分页显示方式
+        currentQueryData = data;
+        currentPage = 1;
+
+        // 保存表名和总行数信息到全局变量，用于显示
+        window.tableNameForDisplay = tableName;
+        window.totalRowsForDisplay = totalRows;
+
+        renderQueryResult();
     }
 
     // 显示查询错误

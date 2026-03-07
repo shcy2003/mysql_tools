@@ -12,6 +12,8 @@ class MaskingRule(models.Model):
 
     # 规则名称
     name = models.CharField(max_length=100, default='', verbose_name='规则名称')
+    # 是否启用
+    is_enabled = models.BooleanField(default=True, verbose_name='是否启用')
     # 全局配置，不需要指定连接和表名
     column_names = models.JSONField(default=list, verbose_name='列名列表')
     masking_type = models.CharField(

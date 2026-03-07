@@ -10,12 +10,8 @@ from audit.utils import create_audit_log
 @login_required
 def connection_list_view(request):
     """连接列表视图"""
-    # 只有管理员可以查看所有连接
-    if request.user.role == 'admin':
-        connections = MySQLConnection.objects.all()
-    else:
-        connections = MySQLConnection.objects.filter(created_by=request.user)
-
+    # 所有登录用户都可以查看所有连接
+    connections = MySQLConnection.objects.all()
     return render(request, 'connections/list.html', {'connections': connections})
 
 
@@ -135,9 +131,12 @@ def connection_test_view(request, connection_id):
 
     if success:
         messages.success(request, message)
+        connection.status = 'active'
     else:
         messages.error(request, message)
+        connection.status = 'inactive'
 
+    connection.save()
     return redirect('connections:connection_list')
 
 
@@ -164,15 +163,12 @@ def api_connection_tree(request):
     """
     获取连接树 API
     GET /api/connections/tree/
-    
-    返回当前用户的所有连接，以及每个连接下的数据库和表结构。
+
+    返回所有连接，以及每个连接下的数据库和表结构。
     """
     try:
-        # 获取用户可以访问的连接
-        if request.user.role == 'admin':
-            connections = MySQLConnection.objects.all()
-        else:
-            connections = MySQLConnection.objects.filter(created_by=request.user)
+        # 获取所有连接（所有登录用户都可以看到所有连接）
+        connections = MySQLConnection.objects.all()
 
         tree_data = []
         for conn in connections:
@@ -222,11 +218,8 @@ def api_connection_databases(request, connection_id):
     """
     try:
         connection = get_object_or_404(MySQLConnection, id=connection_id)
-        
-        # 检查权限
-        if request.user.role != 'admin' and connection.created_by != request.user:
-            return api_response(code=403, message='没有权限访问此连接')
-        
+
+        # 所有登录用户都可以访问所有连接
         from .utils import get_databases
         try:
             databases = get_databases(connection.get_connection_params())
@@ -249,13 +242,10 @@ def api_connection_tables(request, connection_id):
         database = request.GET.get('database')
         if not database:
             return api_response(code=400, message='缺少 database 参数')
-        
+
         connection = get_object_or_404(MySQLConnection, id=connection_id)
-        
-        # 检查权限
-        if request.user.role != 'admin' and connection.created_by != request.user:
-            return api_response(code=403, message='没有权限访问此连接')
-        
+
+        # 所有登录用户都可以访问所有连接
         from .utils import get_tables
         tables = get_tables(connection, database)
         
@@ -404,6 +394,19 @@ def api_test_connection(request):
 
         # 测试连接
         success, message = test_mysql_connection(connection_params)
+
+        # 如果提供了连接ID，更新连接状态
+        connection_id = body.get('connection_id')
+        if connection_id:
+            try:
+                connection = MySQLConnection.objects.get(id=connection_id)
+                if success:
+                    connection.status = 'active'
+                else:
+                    connection.status = 'inactive'
+                connection.save()
+            except MySQLConnection.DoesNotExist:
+                pass
 
         if success:
             return api_response(code=0, message=message)

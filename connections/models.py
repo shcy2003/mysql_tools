@@ -4,7 +4,18 @@ from django.conf import settings
 
 class MySQLConnection(models.Model):
     """MySQL 连接配置模型"""
+    STATUS_CHOICES = [
+        ('active', '已连接'),
+        ('inactive', '未连接'),
+    ]
+
     name = models.CharField(max_length=100, verbose_name='连接名称')
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='inactive',
+        verbose_name='连接状态'
+    )
     host = models.CharField(max_length=255, verbose_name='主机地址')
     port = models.PositiveIntegerField(default=3306, verbose_name='端口')
     database = models.CharField(max_length=100, verbose_name='数据库名称')
