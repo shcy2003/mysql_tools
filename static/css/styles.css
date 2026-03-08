@@ -769,6 +769,11 @@ a:hover {
     }
 }
 
+/* 底部内边距类 - 为了避免内容被API文档底栏遮挡 */
+.pb-12 {
+    padding-bottom: 80px !important;
+}
+
 /* 悬停效果 */
 .hover-lift {
     transition: transform var(--transition-fast), box-shadow var(--transition-fast);
@@ -894,29 +899,35 @@ a:hover {
 }
 
 /* ==========================================
-   16. 侧边栏连接树样式
+   16. 侧边栏连接树样式 - 美化版
    ========================================== */
 .connection-item,
 .db-item-sidebar,
 .table-item-sidebar {
-    padding: 6px 10px;
+    padding: 8px 12px;
     cursor: pointer;
-    border-radius: 6px;
-    margin: 2px 0;
-    transition: all 0.2s;
+    border-radius: 8px;
+    margin: 4px 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 0.875rem;
+    border: 1px solid transparent;
 }
 
 .connection-item:hover,
 .db-item-sidebar:hover,
 .table-item-sidebar:hover {
     background: var(--gray-100);
+    border-color: var(--gray-200);
+    transform: translateX(2px);
 }
 
 .connection-item.active,
 .db-item-sidebar.active {
-    background: rgba(102, 126, 234, 0.15);
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
     color: var(--primary);
+    border-color: rgba(102, 126, 234, 0.2);
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.1);
 }
 
 .connection-toggle,
@@ -926,22 +937,29 @@ a:hover {
     align-items: center;
     width: 20px;
     color: var(--gray-500);
+    transition: all 0.2s;
 }
 
 .connection-toggle:hover,
 .db-toggle-sidebar:hover {
     color: var(--primary);
+    transform: scale(1.1);
 }
 
 .database-list,
 .table-list-sidebar {
-    margin-left: 8px;
+    margin-left: 16px;
+    border-left: 2px solid var(--gray-200);
+    padding-left: 8px;
 }
 
 #sql-query-tree .text-muted.small {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    color: var(--gray-500);
+    font-weight: 500;
+    padding: 8px 10px;
 }
 
 .table-item-sidebar {
@@ -955,11 +973,272 @@ a:hover {
 }
 
 .table-actions .btn {
-    padding: 2px 6px;
+    padding: 4px 8px;
     font-size: 0.75rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+    background: linear-gradient(135deg, #20c997 0%, #12b886 100%);
+    border: none;
+    color: white;
 }
 
 .table-actions .btn:hover {
+    background: linear-gradient(135deg, #12b886 0%, #0ca678 100%);
     transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(32, 201, 151, 0.25);
+}
+
+/* 连接树图标优化 */
+.connection-item i.bi-hdd-network,
+.db-item-sidebar i.bi-database,
+.table-item-sidebar i.bi-table {
+    margin-right: 8px;
+    opacity: 0.8;
+}
+
+.connection-item.active i.bi-hdd-network,
+.db-item-sidebar.active i.bi-database {
+    opacity: 1;
+    color: var(--primary);
+}
+
+
+/* ==========================================
+   17. SQL查询页面美化
+   ========================================== */
+.sql-editor-card {
+    background: #fff;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    transition: all var(--transition);
+}
+
+.sql-editor-card:hover {
+    box-shadow: var(--shadow-xl);
+}
+
+.sql-editor-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    padding: 1.5rem;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.sql-editor-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+.sql-editor-header .d-flex {
+    position: relative;
+    z-index: 1;
+}
+
+.sql-editor-header h5 {
+    font-weight: 600;
+    margin: 0;
+}
+
+.stat-badge {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-full);
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+#sql-query-form {
+    padding: 1.5rem;
+}
+
+#sql-query-form .form-control {
+    border: 2px solid var(--gray-200);
+    transition: all var(--transition);
+}
+
+#sql-query-form .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+}
+
+#execute-btn {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    border-radius: var(--radius-lg);
+    transition: all var(--transition);
+    box-shadow: var(--shadow-md);
+}
+
+#execute-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+#execute-btn:disabled {
+    opacity: 0.6;
+    transform: none;
+    box-shadow: none;
+}
+
+.result-card {
+    background: #fff;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    transition: all var(--transition);
+}
+
+.result-card:hover {
+    box-shadow: var(--shadow-xl);
+}
+
+.result-table {
+    width: 100%;
+    margin: 0;
+}
+
+.result-table thead {
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+}
+
+.result-table th {
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--gray-700);
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid var(--gray-300);
+}
+
+.result-table td {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    border-top: 1px solid var(--gray-100);
+}
+
+.result-table tbody tr {
+    transition: all var(--transition-fast);
+}
+
+.result-table tbody tr:hover {
+    background: rgba(102, 126, 234, 0.05);
+    transform: scale(1.01);
+}
+
+.result-table tbody tr:hover td {
+    color: var(--primary);
+}
+
+.table-wrapper {
+    max-height: 500px;
+    overflow-y: auto;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-200);
+}
+
+.card-footer {
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+    padding: 1rem;
+    border-top: 1px solid var(--gray-200);
+}
+
+.card-footer .text-muted {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+}
+
+/* ==========================================
+   18. 查询结果表格美化
+   ========================================== */
+#query-result .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-200);
+    padding: 1rem 1.5rem;
+}
+
+.pagination {
+    margin: 0;
+}
+
+/* 确保分页列表样式正常，不显示圆点 */
+.pagination {
+    list-style: none !important;
+    padding-left: 0 !important;
+    margin: 0;
+    display: flex;
+    gap: 4px;
+}
+
+.pagination li {
+    list-style: none !important;
+}
+
+.pagination .page-link {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.875rem;
+    font-size: 0.875rem;
+    color: var(--gray-700);
+    transition: all var(--transition-fast);
+    min-width: 40px;
+    text-align: center;
+}
+
+.pagination .page-link:hover {
+    background: var(--gray-100);
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-1px);
+}
+
+.pagination .page-item.active .page-link {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    border-color: var(--primary);
+    color: white;
+    font-weight: 500;
+}
+
+.pagination .page-item.disabled .page-link {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.card-footer .text-muted {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+}
+
+/* 导出Excel按钮 */
+#export-excel-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+    transition: all var(--transition);
+}
+
+#export-excel-btn:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 

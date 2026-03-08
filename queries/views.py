@@ -16,7 +16,14 @@ def query_list_view(request):
     else:
         connections = MySQLConnection.objects.filter(created_by=request.user)
 
-    return render(request, 'queries/list.html', {'connections': connections})
+    # 获取全局脱敏规则数量
+    from desensitization.models import MaskingRule
+    masking_rules_count = MaskingRule.objects.count()
+
+    return render(request, 'queries/list.html', {
+        'connections': connections,
+        'masking_rules_count': masking_rules_count
+    })
 
 
 @login_required
@@ -99,6 +106,7 @@ def query_history_view(request):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
     sql_keyword = request.GET.get('sql_keyword')
+    min_execution_time = request.GET.get('min_execution_time')
 
     if filter_user_id:
         history = history.filter(user_id=filter_user_id)
@@ -112,6 +120,14 @@ def query_history_view(request):
         history = history.filter(created_at__range=(start_datetime, end_datetime))
     if sql_keyword:
         history = history.filter(sql__icontains=sql_keyword)
+    if min_execution_time:
+        try:
+            min_time = float(min_execution_time)
+            # 转换为毫秒（因为数据库中存储的是毫秒）
+            min_time_ms = min_time * 1000
+            history = history.filter(execution_time__gte=min_time_ms)
+        except ValueError:
+            pass
 
     # 排序
     history = history.order_by('-created_at')
@@ -131,6 +147,7 @@ def query_history_view(request):
         'filter_start_date': start_date,
         'filter_end_date': end_date,
         'filter_sql_keyword': sql_keyword,
+        'filter_min_execution_time': min_execution_time,
     }
 
     return render(request, 'queries/history.html', context)

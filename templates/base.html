@@ -20,7 +20,7 @@
         <div class="row">
             {% include 'sidebar.html' %}
 
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 pb-12">
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">{% block page_title %}{% endblock %}</h1>
                 </div>
@@ -43,198 +43,396 @@
 
     // 检查是否在SQL查询页面
     function isSqlQueryPage() {
-        return window.location.pathname.includes('/queries/sql/') ||
-               window.location.pathname === '/queries/sql/';
+        const sqlEditor = document.getElementById('sqlEditor');
+        console.log('isSqlQueryPage(): sqlEditor element:', sqlEditor);
+        const isFound = sqlEditor !== null;
+        console.log('isSqlQueryPage():', isFound);
+        return isFound;
     }
 
-    // 初始化侧边栏的数据库树（仅在SQL查询页面）
+    // 初始化侧边栏的数据库连接选择（仅在SQL查询页面）
     function initSidebarConnectionTree() {
-        if (!isSqlQueryPage()) {
-            $('#sql-query-tree').hide();
+        console.log('=== initSidebarConnectionTree ===');
+        console.log('window.location.pathname:', window.location.pathname);
+        console.log('document.getElementById("sql-query-connection"):', document.getElementById('sql-query-connection'));
+
+        const pageIsSqlQuery = isSqlQueryPage();
+        console.log('isSqlQueryPage():', pageIsSqlQuery);
+
+        if (!pageIsSqlQuery) {
+            console.log('Not SQL query page, hiding connection tree');
+            $('#sql-query-connection').hide();
+            $('#sql-query-connection').css('display', 'none');
             return;
         }
 
-        $('#sql-query-tree').show();
-        loadConnections();
+        console.log('SQL query page detected, showing connection tree');
+        // 使用多种方法确保元素可见
+        $('#sql-query-connection').show();
+        $('#sql-query-connection').css('display', 'block');
+        $('#sql-query-connection').css('visibility', 'visible');
+        console.log('sql-query-connection display property:', $('#sql-query-connection').css('display'));
+        loadSidebarConnections();
     }
 
-    // 加载连接列表
-    function loadConnections() {
-        var $container = $('#connection-tree-container');
-        $container.html('<div class="text-muted py-2 text-sm"><div class="spinner-border spinner-border-sm"></div> 加载中...</div>');
+    // 加载连接列表到侧边栏的下拉框
+    function loadSidebarConnections() {
+        var $select = $('#sidebar-connection-select');
+        $select.prop('disabled', true).html('<option value="">加载中...</option>');
 
         $.get('/api/connections/tree/', function(data) {
             if (data.code === 0) {
-                var html = '';
+                var options = '<option value="">请选择连接...</option>';
                 data.data.forEach(function(conn) {
-                    html += '<div class="mb-2">' +
-                            '<div class="connection-item" data-connection-id="' + conn.id + '">' +
-                            '<span class="connection-toggle" data-connection-id="' + conn.id + '">' +
-                            '<i class="bi bi-plus-square"></i></span> ' +
-                            '<i class="bi bi-hdd-network"></i> ' + conn.name + '</div>' +
-                            '<div class="database-list ms-3" id="databases-' + conn.id + '" style="display: none;"></div>' +
-                            '</div>';
+                    options += '<option value="' + conn.id + '">' + conn.name + '</option>';
                 });
-                $container.html(html || '<div class="text-muted py-2 text-sm">暂无连接</div>');
+                $select.html(options);
+
+                // 如果之前有选中的连接，恢复选择
+                if (window.selectedConnectionId) {
+                    $select.val(window.selectedConnectionId);
+                    loadSidebarDatabases(window.selectedConnectionId);
+                }
             } else {
-                $container.html('<div class="text-danger py-2 text-sm">' + data.message + '</div>');
+                $select.html('<option value="">加载失败</option>');
             }
+            $select.prop('disabled', false);
         }).fail(function() {
-            $container.html('<div class="text-danger py-2 text-sm">加载失败</div>');
+            $select.html('<option value="">加载失败</option>');
+            $select.prop('disabled', false);
         });
     }
 
-    // 展开/折叠连接
-    $(document).on('click', '.connection-toggle', function(e) {
-        e.stopPropagation();
-        var connectionId = $(this).data('connection-id');
-        var $toggle = $(this);
-        var $connItem = $toggle.closest('.connection-item');
-        var $dbList = $('#databases-' + connectionId);
+    // 加载数据库列表到侧边栏的下拉框
+    function loadSidebarDatabases(connectionId) {
+        var $select = $('#sidebar-database-select');
+        var $container = $('#sidebar-db-container');
 
-        if ($connItem.hasClass('expanded')) {
-            // 折叠
-            $connItem.removeClass('expanded');
-            $toggle.html('<i class="bi bi-plus-square"></i>');
-            $dbList.hide();
-        } else {
-            // 展开 - 加载数据库
-            $connItem.addClass('expanded');
-            $toggle.html('<i class="bi bi-dash-square"></i>');
-            $dbList.show();
-
-            // 选中此连接
-            window.selectedConnectionId = connectionId;
-            $('.connection-item').removeClass('active');
-            $connItem.addClass('active');
-
-            // 如果SQL查询页面已加载，更新页面上的选择器
-            if (window.updateSqlQueryConnection) {
-                window.updateSqlQueryConnection(connectionId);
-            }
-
-            loadDatabases(connectionId, $dbList);
-        }
-    });
-
-    // 加载数据库列表
-    function loadDatabases(connectionId, $container) {
-        $container.html('<div class="text-muted py-1"><div class="spinner-border spinner-border-sm"></div></div>');
+        $select.prop('disabled', true).html('<option value="">加载中...</option>');
+        $container.show();
 
         $.get('/api/connections/' + connectionId + '/databases/', function(data) {
             if (data.code === 0) {
-                var html = '';
+                var options = '<option value="">请选择数据库...</option>';
                 data.data.forEach(function(db) {
-                    html += '<div class="db-item-sidebar mb-1" data-db="' + db + '">' +
-                            '<span class="db-toggle-sidebar" data-db="' + db + '" data-connection-id="' + connectionId + '">' +
-                            '<i class="bi bi-plus-square"></i></span> ' +
-                            '<i class="bi bi-database"></i> ' + db + '</div>' +
-                            '<div class="table-list-sidebar ms-3" id="tables-' + connectionId + '-' + db.replace(/[^a-zA-Z0-9]/g, '_') + '" style="display: none;"></div>';
+                    options += '<option value="' + db + '">' + db + '</option>';
                 });
-                $container.html(html || '<div class="text-muted py-1 text-sm">暂无数据库</div>');
+                $select.html(options);
+
+                // 如果之前有选中的数据库，恢复选择
+                if (window.selectedDatabase) {
+                    $select.val(window.selectedDatabase);
+                    // 加载该数据库的表列表
+                    loadSidebarTables(connectionId, window.selectedDatabase);
+                }
             } else {
-                $container.html('<div class="text-danger py-1 text-sm">' + data.message + '</div>');
+                $select.html('<option value="">加载失败</option>');
             }
+            $select.prop('disabled', false);
         }).fail(function() {
-            $container.html('<div class="text-danger py-1 text-sm">加载失败</div>');
+            $select.html('<option value="">加载失败</option>');
+            $select.prop('disabled', false);
         });
     }
 
-    // 展开/折叠数据库
-    $(document).on('click', '.db-toggle-sidebar', function(e) {
-        e.stopPropagation();
-        var connectionId = $(this).data('connection-id');
-        var database = $(this).data('db');
-        var $toggle = $(this);
-        var $dbItem = $toggle.closest('.db-item-sidebar');
-        var tableListId = 'tables-' + connectionId + '-' + database.replace(/[^a-zA-Z0-9]/g, '_');
-        var $tableList = $('#' + tableListId);
+    // 加载表列表到侧边栏
+    function loadSidebarTables(connectionId, database) {
+        var $container = $('#sidebar-tables-container');
+        var $wrapper = $('#sidebar-tables-wrapper');
+        var $pagination = $('#sidebar-tables-pagination');
 
-        if ($dbItem.hasClass('expanded')) {
-            // 折叠
-            $dbItem.removeClass('expanded');
-            $toggle.html('<i class="bi bi-plus-square"></i>');
-            $tableList.hide();
-        } else {
-            // 展开 - 加载表
-            $dbItem.addClass('expanded');
-            $toggle.html('<i class="bi bi-dash-square"></i>');
-            $tableList.show();
-
-            // 选中此数据库
-            window.selectedDatabase = database;
-            $('.db-item-sidebar').removeClass('active');
-            $dbItem.addClass('active');
-
-            // 如果SQL查询页面已加载，更新页面上的选择器
-            if (window.updateSqlQueryDatabase) {
-                window.updateSqlQueryDatabase(database);
-            }
-
-            loadTables(connectionId, database, $tableList);
-        }
-    });
-
-    // 加载表列表
-    function loadTables(connectionId, database, $container) {
-        $container.html('<div class="text-muted py-1"><div class="spinner-border spinner-border-sm"></div></div>');
+        $container.show();
+        $wrapper.html('<div class="text-muted py-1"><div class="spinner-border spinner-border-sm"></div> 加载中...</div>');
+        $pagination.hide();
 
         $.get('/api/connections/' + connectionId + '/tables/?database=' + database, function(data) {
             if (data.code === 0) {
-                var html = '';
-                data.data.forEach(function(table) {
-                    html += '<div class="table-item-sidebar mb-1" data-table="' + table + '" data-db="' + database + '">' +
-                            '<i class="bi bi-table"></i> ' + table +
-                            '<span class="table-actions">' +
-                            '<button type="button" class="btn btn-sm btn-outline-info view-structure" data-table="' + table + '" data-db="' + database + '">' +
-                            '<i class="bi bi-info-circle"></i> 结构' +
-                            '</button>' +
-                            '</span></div>';
-                });
-                $container.html(html || '<div class="text-muted py-1 text-sm">暂无表</div>');
+                var tables = data.data;
+                // 渲染表列表
+                renderTableList(tables);
+                // 渲染分页控件
+                renderTablePagination(tables);
             } else {
-                $container.html('<div class="text-danger py-1 text-sm">' + data.message + '</div>');
+                $wrapper.html('<div class="text-danger py-1 text-sm">' + data.message + '</div>');
             }
         }).fail(function() {
-            $container.html('<div class="text-danger py-1 text-sm">加载失败</div>');
+            $wrapper.html('<div class="text-danger py-1 text-sm">加载失败</div>');
         });
     }
 
-    // 点击表 - 插入到SQL编辑器
-    $(document).on('click', '.table-item-sidebar', function(e) {
-        // 如果点击的是结构按钮，不执行插入操作
-        if ($(e.target).closest('.view-structure').length) {
+    // 表分页状态
+    var tablePageState = {
+        currentPage: 1,
+        searchText: '',
+        allTables: [],
+        tablesPerPage: 5,
+        maxPaginationPages: 3
+    };
+
+    // 渲染表列表
+    function renderTableList(tables) {
+        tablePageState.allTables = tables;
+        var $wrapper = $('#sidebar-tables-wrapper');
+        var $pagination = $('#sidebar-tables-pagination');
+
+        var filteredTables = tablePageState.allTables;
+        if (tablePageState.searchText) {
+            var searchTextLower = tablePageState.searchText.toLowerCase();
+            filteredTables = filteredTables.filter(function(table) {
+                return table.toLowerCase().indexOf(searchTextLower) !== -1;
+            });
+        }
+
+        var totalPages = Math.ceil(filteredTables.length / tablePageState.tablesPerPage);
+        var startIdx = (tablePageState.currentPage - 1) * tablePageState.tablesPerPage;
+        var endIdx = Math.min(startIdx + tablePageState.tablesPerPage, filteredTables.length);
+        var tablesToShow = filteredTables.slice(startIdx, endIdx);
+
+        var html = '';
+
+        // 如果需要分页，添加搜索框
+        if (tablePageState.allTables.length > tablePageState.tablesPerPage) {
+            html += '<div class="mb-2">' +
+                    '<div class="input-group input-group-sm">' +
+                    '<input type="text" class="form-control table-search-input" placeholder="搜索表名...">' +
+                    '<button class="btn btn-outline-secondary table-search-btn" type="button">' +
+                    '<i class="bi bi-search"></i>' +
+                    '</button>' +
+                    '</div>' +
+                    '</div>';
+        }
+
+        // 渲染表列表
+        tablesToShow.forEach(function(table) {
+            html += '<div class="table-item-sidebar mb-1" data-table="' + table + '">' +
+                    '<i class="bi bi-table"></i> ' + table +
+                    '<span class="table-row-count" id="row-count-' + table + '" style="display: none; margin-left: 8px; font-size: 0.75rem; color: #6c757d;"></span>' +
+                    '<span class="table-actions" style="margin-left: auto;">' +
+                    '<button type="button" class="btn btn-sm btn-outline-primary query-table" data-table="' + table + '">' +
+                    '<i class="bi bi-play"></i> 查询' +
+                    '</button>' +
+                    '<button type="button" class="btn btn-sm btn-outline-info view-structure" data-table="' + table + '">' +
+                    '<i class="bi bi-info-circle"></i> 结构' +
+                    '</button>' +
+                    '</span></div>';
+        });
+
+        // 如果没有表，显示提示
+        if (tablesToShow.length === 0) {
+            html += '<div class="text-muted py-1 text-sm">' + (tablePageState.searchText ? '没有匹配的表' : '暂无表') + '</div>';
+        }
+
+        $wrapper.html(html);
+    }
+
+    // 渲染分页控件
+    function renderTablePagination(tables) {
+        var $pagination = $('#sidebar-tables-pagination');
+
+        var filteredTables = tablePageState.allTables;
+        if (tablePageState.searchText) {
+            var searchTextLower = tablePageState.searchText.toLowerCase();
+            filteredTables = filteredTables.filter(function(table) {
+                return table.toLowerCase().indexOf(searchTextLower) !== -1;
+            });
+        }
+
+        var totalPages = Math.ceil(filteredTables.length / tablePageState.tablesPerPage);
+        if (totalPages <= 1) {
+            $pagination.hide();
             return;
         }
-        var table = $(this).data('table');
-        var db = $(this).data('db');
 
-        if (window.insertTableIntoEditor) {
-            window.insertTableIntoEditor(db, table);
+        var html = '<nav><ul class="pagination pagination-sm justify-content-center">';
+
+        // 首页
+        html += '<li class="page-item ' + (tablePageState.currentPage === 1 ? 'disabled' : '') + '">' +
+                '<a class="page-link" href="#" data-page="1">' +
+                '<i class="bi bi-chevron-double-left"></i>' +
+                '</a></li>';
+
+        // 上一页
+        html += '<li class="page-item ' + (tablePageState.currentPage === 1 ? 'disabled' : '') + '">' +
+                '<a class="page-link" href="#" data-page="' + (tablePageState.currentPage - 1) + '">' +
+                '<i class="bi bi-chevron-left"></i>' +
+                '</a></li>';
+
+        // 页码 - 最多显示3个页码
+        var startPage = Math.max(1, tablePageState.currentPage - 1);
+        var endPage = Math.min(totalPages, startPage + 2);
+        if (endPage - startPage < 2) {
+            startPage = Math.max(1, endPage - 2);
+        }
+
+        for (var i = startPage; i <= endPage; i++) {
+            html += '<li class="page-item ' + (i === tablePageState.currentPage ? 'active' : '') + '">' +
+                    '<a class="page-link" href="#" data-page="' + i + '">' + i + '</a></li>';
+        }
+
+        // 下一页
+        html += '<li class="page-item ' + (tablePageState.currentPage === totalPages ? 'disabled' : '') + '">' +
+                '<a class="page-link" href="#" data-page="' + (tablePageState.currentPage + 1) + '">' +
+                '<i class="bi bi-chevron-right"></i>' +
+                '</a></li>';
+
+        // 末页
+        html += '<li class="page-item ' + (tablePageState.currentPage === totalPages ? 'disabled' : '') + '">' +
+                '<a class="page-link" href="#" data-page="' + totalPages + '">' +
+                '<i class="bi bi-chevron-double-right"></i>' +
+                '</a></li>';
+
+        html += '</ul></nav>';
+
+        $pagination.html(html);
+        $pagination.show();
+
+        // 绑定分页事件
+        $pagination.find('.page-link').on('click', function(e) {
+            e.preventDefault();
+            var page = parseInt($(this).data('page'));
+            if (page && page >= 1 && page <= totalPages) {
+                tablePageState.currentPage = page;
+                renderTableList(tablePageState.allTables);
+                renderTablePagination(tablePageState.allTables);
+            }
+        });
+    }
+
+    // 表项点击事件
+    $(document).on('click', '.table-item-sidebar', function(e) {
+        // 避免点击按钮时触发此事件
+        if ($(e.target).is('button')) {
+            return;
+        }
+
+        var tableName = $(this).data('table');
+        if (tableName) {
+            // 自动查询20条数据
+            autoQueryTableData(tableName);
+            // 获取表行数
+            getTableRowCount(tableName);
         }
     });
 
-    // 点击结构按钮 - 显示表结构
-    $(document).on('click', '.view-structure', function(e) {
+    // 查询按钮点击事件
+    $(document).on('click', '.query-table', function(e) {
         e.stopPropagation();
-        var table = $(this).data('table');
-        var db = $(this).data('db');
-        var connectionId = window.selectedConnectionId;
+        var tableName = $(this).data('table');
+        if (tableName) {
+            autoQueryTableData(tableName);
+            getTableRowCount(tableName);
+        }
+    });
 
-        if (!connectionId) {
-            alert('请先选择数据库连接');
+    // 自动查询表数据
+    function autoQueryTableData(tableName) {
+        if (!window.selectedConnectionId || !window.selectedDatabase) {
+            console.log('请先选择数据库连接和数据库');
             return;
         }
 
-        // 调用显示表结构的函数
-        if (window.showTableStructure) {
-            window.showTableStructure(connectionId, db, table);
+        var sql = 'SELECT * FROM `' + window.selectedDatabase + '`.`' + tableName + '` LIMIT 20';
+
+        // 更新SQL编辑器
+        if (window.updateSqlQueryEditor) {
+            window.updateSqlQueryEditor(sql);
+        }
+    }
+
+    // 获取表行数
+    function getTableRowCount(tableName) {
+        if (!window.selectedConnectionId || !window.selectedDatabase) {
+            console.log('请先选择数据库连接和数据库');
+            return;
+        }
+
+        var cacheKey = 'row-count-' + window.selectedConnectionId + '-' + window.selectedDatabase + '-' + tableName;
+
+        // 先尝试从本地存储获取
+        var cachedCount = localStorage.getItem(cacheKey);
+        if (cachedCount) {
+            $('#row-count-' + tableName).text(cachedCount + ' 行').show();
+        }
+
+        // 从服务器获取
+        $.get('/api/connections/' + window.selectedConnectionId + '/tables/?row-count=1&database=' + window.selectedDatabase + '&table=' + tableName, function(data) {
+            if (data.code === 0) {
+                var rowCount = data.data;
+                $('#row-count-' + tableName).text(rowCount + ' 行').show();
+                // 缓存到本地存储
+                localStorage.setItem(cacheKey, rowCount);
+            }
+        }).fail(function() {
+            console.log('获取表行数失败');
+        });
+    }
+
+    // 表搜索事件
+    $(document).on('keyup', '.table-search-input', function(e) {
+        if (e.key === 'Enter') {
+            var searchText = $(this).val();
+            tablePageState.searchText = searchText;
+            tablePageState.currentPage = 1;
+            renderTableList(tablePageState.allTables);
+            renderTablePagination(tablePageState.allTables);
+        }
+    });
+
+    $(document).on('click', '.table-search-btn', function() {
+        var $input = $('.table-search-input');
+        var searchText = $input.val();
+        tablePageState.searchText = searchText;
+        tablePageState.currentPage = 1;
+        renderTableList(tablePageState.allTables);
+        renderTablePagination(tablePageState.allTables);
+    });
+
+    // 侧边栏连接选择事件
+    $(document).on('change', '#sidebar-connection-select', function(e) {
+        var connectionId = $(this).val();
+        if (connectionId) {
+            window.selectedConnectionId = parseInt(connectionId);
+            loadSidebarDatabases(connectionId);
+
+            // 通知SQL查询页面更新
+            if (window.updateSqlQueryConnection) {
+                window.updateSqlQueryConnection(window.selectedConnectionId);
+            }
+        } else {
+            window.selectedConnectionId = null;
+            window.selectedDatabase = null;
+            $('#sidebar-db-container').hide();
+        }
+    });
+
+    // 侧边栏数据库选择事件
+    $(document).on('change', '#sidebar-database-select', function(e) {
+        var database = $(this).val();
+        if (database) {
+            window.selectedDatabase = database;
+
+            // 加载该数据库的表列表
+            if (window.selectedConnectionId) {
+                loadSidebarTables(window.selectedConnectionId, database);
+            }
+
+            // 通知SQL查询页面更新
+            if (window.updateSqlQueryDatabase) {
+                window.updateSqlQueryDatabase(database);
+            }
+        } else {
+            window.selectedDatabase = null;
+            // 隐藏表列表
+            $('#sidebar-tables-container').hide();
         }
     });
 
     // 页面加载时初始化
     $(document).ready(function() {
-        initSidebarConnectionTree();
+        // 等待一小段时间，确保所有元素都已加载
+        setTimeout(function() {
+            initSidebarConnectionTree();
+        }, 100);
     });
     </script>
     {% block extra_js %}{% endblock %}

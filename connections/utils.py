@@ -191,6 +191,49 @@ def get_tables(connection, database):
             conn.close()
 
 
+def get_table_row_count(connection, database, table_name):
+    """
+    获取指定表的行数
+
+    Args:
+        connection: MySQLConnection 模型实例
+        database: 数据库名称
+        table_name: 表名
+
+    Returns:
+        int: 表行数
+    """
+    connection_params = connection.get_connection_params()
+    connection_params['database'] = database
+
+    conn = None
+    cursor = None
+    try:
+        # 直接创建新连接，不使用连接池（因为数据库参数不同）
+        conn = mysql.connector.connect(**connection_params)
+        cursor = conn.cursor(dictionary=True)
+        # 使用 INFORMATION_SCHEMA 来获取行数，这样可以利用MySQL的统计信息，不需要扫描全表
+        cursor.execute(f"""
+            SELECT TABLE_ROWS
+            FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA = '{database}'
+            AND TABLE_NAME = '{table_name}'
+        """)
+        result = cursor.fetchone()
+        return result['TABLE_ROWS'] if result and result['TABLE_ROWS'] is not None else 0
+    except Error as e:
+        logger.error(f"获取表行数失败: {e}")
+        raise Exception(f"获取表行数失败: {str(e)}")
+    finally:
+        if cursor:
+            try:
+                cursor.close()
+            except:
+                pass
+        if conn and conn.is_connected():
+            conn.close()
+
+
 import re
 
 def get_columns(connection_params, table_name):

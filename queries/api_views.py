@@ -573,20 +573,88 @@ def api_export_excel(request):
 
 
 @login_required
+@require_http_methods(["GET"])
+def api_get_configs(request):
+    """
+    获取系统配置API
+
+    GET /api/queries/configs/
+
+    响应:
+        {
+            "code": 0,
+            "message": "success",
+            "data": {
+                "tables_per_page": "5",
+                "sql_query_page_size": "20",
+                "max_pagination_pages": "3",
+                "sidebar_default_width": "250",
+                "sidebar_min_width": "100",
+                "sidebar_max_width": "600"
+            }
+        }
+    """
+    try:
+        from queries.models import SystemConfig
+        configs = SystemConfig.objects.all()
+
+        config_dict = {}
+        for config in configs:
+            config_dict[config.name] = config.value
+
+        # 确保所有配置项都存在，使用默认值
+        default_config = {
+            "tables_per_page": "5",
+            "sql_query_page_size": "20",
+            "max_pagination_pages": "3",
+            "sidebar_default_width": "250",
+            "sidebar_min_width": "100",
+            "sidebar_max_width": "600"
+        }
+
+        # 合并配置，确保所有项都有值
+        merged_config = {**default_config, **config_dict}
+
+        return JsonResponse({
+            "code": 0,
+            "message": "success",
+            "data": merged_config
+        })
+
+    except Exception as e:
+        print(f"加载系统配置失败，使用默认值: {str(e)}")
+        # 无论如何都返回默认配置，而不是500错误
+        return JsonResponse({
+            "code": 0,
+            "message": "使用默认配置",
+            "data": {
+                "tables_per_page": "5",
+                "sql_query_page_size": "20",
+                "max_pagination_pages": "3",
+                "sidebar_default_width": "250",
+                "sidebar_min_width": "100",
+                "sidebar_max_width": "600"
+            }
+        })
+
+
+@login_required
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_execute_query(request):
     """
-    执行 SQL 查询（仅支持 SELECT）
+    执行 SQL 查询（支持 SELECT 和 SHOW 命令）
 
     POST /api/queries/execute/
-    
+
     请求体:
     {
         "connection_id": 1,
-        "sql": "SELECT * FROM users WHERE age > 18"
+        "sql": "SELECT * FROM users WHERE age > 18",
+        "page": 1,
+        "page_size": 20
     }
-    
+
     响应:
     {
         "code": 0,
@@ -595,6 +663,10 @@ def api_execute_query(request):
             "columns": ["id", "name", "email", "age"],
             "rows": [...],
             "row_count": 2,
+            "total_count": 100,
+            "page": 1,
+            "page_size": 20,
+            "total_pages": 5,
             "execution_time_ms": 15.23,
             "limited": false
         }
@@ -606,26 +678,36 @@ def api_execute_query(request):
         connection_id = data.get('connection_id')
         sql = data.get('sql', '').strip()
         database = data.get('database', None)
-        
+        page = int(data.get('page', 1))
+        page_size = int(data.get('page_size', 20))
+
+        # 验证分页参数
+        if page < 1:
+            page = 1
+        if page_size < 1:
+            page_size = 20
+        elif page_size > 100:
+            page_size = 100
+
         # 验证必需参数
         if not connection_id:
             return JsonResponse({
                 "code": 400,
                 "message": "缺少必需参数: connection_id"
             }, status=400)
-        
+
         if not sql:
             return JsonResponse({
                 "code": 400,
                 "message": "缺少必需参数: sql"
             }, status=400)
-        
-        # 只允许 SELECT 查询
+
+        # 支持 SELECT 和 SHOW 查询
         sql_upper = sql.upper()
-        if not sql_upper.startswith('SELECT'):
+        if not (sql_upper.startswith('SELECT') or sql_upper.startswith('SHOW')):
             return JsonResponse({
                 "code": 400,
-                "message": "只允许执行 SELECT 查询"
+                "message": "只允许执行 SELECT 或 SHOW 查询"
             }, status=400)
         
         # 检查危险关键字（简单防护）
@@ -675,10 +757,32 @@ def api_execute_query(request):
                 conn = get_connection_from_pool(connection_params)
                 cursor = conn.cursor(dictionary=True)
 
-            # 执行查询（返回所有结果，不限制行数）
-            cursor.execute(sql)
-            rows = cursor.fetchall()
-            limited = False
+            # 判断是否需要分页
+            sql_upper = sql.upper()
+            needs_pagination = sql_upper.startswith('SELECT') and 'LIMIT' not in sql_upper
+
+            if needs_pagination:
+                # 先查询总数
+                try:
+                    count_sql = f"SELECT COUNT(*) as total FROM ({sql}) as subq"
+                    cursor.execute(count_sql)
+                    total_count = cursor.fetchone()['total']
+                except:
+                    # 如果计数查询失败，则不使用分页
+                    needs_pagination = False
+                    total_count = None
+
+            if needs_pagination:
+                # 再查询分页数据
+                offset = (page - 1) * page_size
+                paginated_sql = f"{sql} LIMIT %s OFFSET %s"
+                cursor.execute(paginated_sql, [page_size, offset])
+                rows = cursor.fetchall()
+            else:
+                # 不需要分页：直接执行查询
+                cursor.execute(sql)
+                rows = cursor.fetchall()
+                total_count = len(rows) if rows else 0
 
             # 获取列名
             columns = [desc[0] for desc in cursor.description] if cursor.description else []
@@ -690,8 +794,11 @@ def api_execute_query(request):
             from desensitization.utils import apply_masking_rules
             rows = apply_masking_rules(connection, sql, rows, request.user)
 
+            # 计算总页数
+            total_pages = (total_count + page_size - 1) // page_size if total_count > 0 else 0
+
             execution_time = (time.time() - start_time) * 1000
-            
+
             # 记录查询历史和审计日志（不记录 sql，查询历史已有）
             try:
                 from queries.models import QueryHistory
@@ -720,8 +827,12 @@ def api_execute_query(request):
                     "columns": columns,
                     "rows": rows,
                     "row_count": len(rows),
+                    "total_count": total_count,
+                    "page": page,
+                    "page_size": page_size,
+                    "total_pages": total_pages,
                     "execution_time_ms": round(execution_time, 2),
-                    "limited": limited
+                    "limited": False
                 }
             })
             

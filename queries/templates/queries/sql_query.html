@@ -202,7 +202,7 @@
                     </h5>
                     <div class="d-flex align-items-center gap-2">
                         <span class="stat-badge">
-                            <i class="bi bi-info-circle me-1"></i>仅支持 SELECT 查询
+                            <i class="bi bi-info-circle me-1"></i>仅支持 SELECT 或 SHOW 查询
                         </span>
                     </div>
                 </div>
@@ -229,7 +229,7 @@
                             </label>
                             <textarea class="form-control" id="sql-editor" name="sql">{{ sql|default_if_none:'' }}</textarea>
                             <div class="form-text">
-                                <i class="bi bi-lightbulb me-1"></i>提示：只支持 SELECT 查询语句
+                                <i class="bi bi-lightbulb me-1"></i>提示：只支持 SELECT 或 SHOW 查询语句
                             </div>
                         </div>
 
@@ -530,6 +530,11 @@
         if (window.selectedDatabase) {
             window.selectedDatabase = null;
         }
+        // 清除表搜索和分页状态
+        tablePageState = {};
+        // 清除查询结果和错误信息
+        $('.result-card').remove();
+        $('.sql-error').remove();
     }
 
     // 导出Excel功能 - 使用事件委托来处理动态生成的按钮
@@ -618,8 +623,8 @@
             alert('请输入 SQL 语句');
             return;
         }
-        if (!sql.startsWith('SELECT')) {
-            alert('仅支持 SELECT 查询语句！');
+        if (!sql.startsWith('SELECT') && !sql.startsWith('SHOW')) {
+            alert('仅支持 SELECT 或 SHOW 查询语句！');
             return;
         }
 

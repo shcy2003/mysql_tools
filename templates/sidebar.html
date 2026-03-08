@@ -18,11 +18,28 @@
                         SQL查询
                     </a>
                 </li>
-                <!-- SQL查询页面的数据库树 -->
-                <li class="nav-item" id="sql-query-tree" style="display: none;">
-                    <div class="px-3 py-2 text-muted small">数据库连接</div>
-                    <div id="connection-tree-container" class="ms-3">
-                        <div class="text-muted py-2 text-sm">加载中...</div>
+                <!-- SQL查询页面的数据库连接选择 -->
+                <li class="nav-item" id="sql-query-connection" style="display: none;">
+                    <div class="px-3 py-2">
+                        <label class="text-muted small mb-1 d-block">选择连接</label>
+                        <select class="form-select form-select-sm" id="sidebar-connection-select">
+                            <option value="">请选择连接...</option>
+                        </select>
+                    </div>
+                    <div class="px-3 py-1" id="sidebar-db-container" style="display: none;">
+                        <label class="text-muted small mb-1 d-block">选择数据库</label>
+                        <select class="form-select form-select-sm" id="sidebar-database-select">
+                            <option value="">请选择数据库...</option>
+                        </select>
+                    </div>
+                    <div class="px-3 py-2" id="sidebar-tables-container" style="display: none;">
+                        <label class="text-muted small mb-1 d-block">表列表</label>
+                        <div id="sidebar-tables-wrapper">
+                            <!-- 表列表将在这里渲染 -->
+                        </div>
+                        <div id="sidebar-tables-pagination" style="display: none;">
+                            <!-- 分页控件将在这里渲染 -->
+                        </div>
                     </div>
                 </li>
                 {% if user.role == 'admin' %}

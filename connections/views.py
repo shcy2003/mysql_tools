@@ -243,14 +243,24 @@ def api_connection_tables(request, connection_id):
         if not database:
             return api_response(code=400, message='缺少 database 参数')
 
-        connection = get_object_or_404(MySQLConnection, id=connection_id)
+        # 检查是否需要获取表行数
+        if request.GET.get('row-count'):
+            table_name = request.GET.get('table')
+            if not table_name:
+                return api_response(code=400, message='缺少 table 参数')
 
-        # 所有登录用户都可以访问所有连接
+            connection = get_object_or_404(MySQLConnection, id=connection_id)
+            from .utils import get_table_row_count
+            row_count = get_table_row_count(connection, database, table_name)
+            return api_response(data=row_count)
+
+        # 正常获取表列表
+        connection = get_object_or_404(MySQLConnection, id=connection_id)
         from .utils import get_tables
         tables = get_tables(connection, database)
-        
+
         return api_response(data=tables)
-    
+
     except Exception as e:
         return api_response(code=500, message=f'获取表列表失败: {str(e)}')
 

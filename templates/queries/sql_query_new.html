@@ -4,20 +4,28 @@
 {% block title %} - SQL查询(新界面){% endblock %}
 
 {% block extra_css %}
+<!-- CodeMirror CSS for SQL syntax highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/monokai.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.css">
 <style>
 .sql-query-container {
     height: calc(100vh - 180px);
     min-height: 500px;
+    display: flex;
+    overflow: hidden;
 }
 .connection-tree-sidebar {
     background: #f8f9fa;
     border-right: 1px solid #dee2e6;
     height: 100%;
     overflow-y: auto;
-    transition: all 0.3s ease;
+    transition: width 0.3s ease;
     width: 250px;
-    min-width: 40px;
+    min-width: 100px;
+    max-width: 600px;
     position: relative;
+    flex-shrink: 0;
 }
 .connection-tree-sidebar.collapsed {
     width: 40px;
@@ -25,6 +33,16 @@
 }
 .connection-tree-sidebar.collapsed .tree-content {
     display: none;
+}
+.sidebar-resizer {
+    width: 4px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+.sidebar-resizer:hover, .sidebar-resizer.resizing {
+    background: #0d6efd;
 }
 .tree-toggle-btn {
     position: absolute;
@@ -101,12 +119,50 @@
     background: #fff;
     border-bottom: 1px solid #dee2e6;
     padding: 15px;
+    flex-shrink: 0;
+}
+.results-section {
+    flex: 1;
+    overflow: auto;
+    padding: 15px;
+    background: #f8f9fa;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.results-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.results-content {
+    flex: 1;
+    overflow: auto;
 }
 .sql-textarea-wrapper {
     position: relative;
     border: 1px solid #ced4da;
     border-radius: 4px;
     overflow: hidden;
+    min-height: 150px;
+}
+
+/* CodeMirror编辑器样式 */
+.sql-textarea-wrapper .CodeMirror {
+    height: 300px !important;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.sql-textarea-wrapper .CodeMirror-scroll {
+    overflow-x: auto;
+    overflow-y: auto;
 }
 .sql-textarea {
     width: 100%;
@@ -121,19 +177,51 @@
 }
 .sql-textarea:focus {
     outline: none;
-    background: #fff;
+}
+
+/* SQL 语法高亮样式 */
+.sql-keyword {
+    color: #0000FF;
+    font-weight: bold;
+}
+.sql-function {
+    color: #FF00FF;
+}
+.sql-string {
+    color: #A31515;
+}
+.sql-number {
+    color: #008000;
+}
+.sql-comment {
+    color: #008000;
+    font-style: italic;
+}
+.sql-identifier {
+    color: #000000;
+}
+.sql-operator {
+    color: #000000;
+}
+
+/* 自动提示样式 */
+.autocomplete-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+}
+.autocomplete-item:hover, .autocomplete-item.selected {
+    background: #0d6efd;
+    color: white;
+}
+.autocomplete-item:last-child {
+    border-bottom: none;
 }
 .action-buttons {
     display: flex;
     gap: 10px;
     margin-top: 10px;
     flex-wrap: wrap;
-}
-.results-section {
-    flex: 1;
-    overflow: auto;
-    padding: 15px;
-    background: #f8f9fa;
 }
 .results-container {
     background: #fff;
@@ -231,53 +319,53 @@
 .fade-in {
     animation: fadeIn 0.3s ease-out;
 }
+/* 分页样式 */
+.pagination-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.pagination-container .page-btn {
+    padding: 4px 8px;
+    min-width: 32px;
+    height: 32px;
+    font-size: 0.875rem;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.pagination-container .page-btn.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+.pagination-container .page-btn:hover:not(.active):not(:disabled) {
+    background-color: #e9ecef;
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid sql-query-container">
-    <div class="row h-100">
-        <!-- Connection Tree Sidebar -->
-        <div class="col-auto p-0 connection-tree-sidebar" id="connectionTreeSidebar">
-            <div class="tree-toggle-btn" id="treeToggleBtn" title="Fold/Unfold">
-                <i class="bi bi-chevron-left"></i>
-            </div>
-            <div class="tree-content p-2">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0">
-                        <i class="bi bi-hdd-network"></i> Connection
-                    </h6>
-                    <button class="btn btn-sm btn-outline-primary" id="refreshTreeBtn" title="Refresh">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </button>
-                </div>
-                <div id="connectionTree">
-                    <div class="empty-state py-3">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <small class="text-muted d-block mt-1">Loading connections...</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Content Area -->
-        <div class="col main-content-area">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Main Content Area -->
+            <div class="main-content-area">
             <!-- SQL Editor Section -->
             <div class="sql-editor-section">
                 <div class="mb-2">
                     <label class="form-label fw-bold">
                         <i class="bi bi-code-square"></i> SQL Editor
                     </label>
-                    <small class="text-muted ms-2">Support SELECT query, return max 10 records</small>
+                    <small class="text-muted ms-2">Support SELECT or SHOW query, with syntax highlighting</small>
                 </div>
                 <div class="sql-textarea-wrapper">
                     <textarea class="sql-textarea" id="sqlEditor" placeholder="Enter SQL query...
 Example: SELECT * FROM users WHERE status = 'active' LIMIT 10"></textarea>
                 </div>
                 <div class="action-buttons">
-                    <button type="button" class="btn btn-primary" id="executeBtn" onclick="executeQueryDirect()">
+                    <button type="button" class="btn btn-primary" id="executeBtn">
                         <i class="bi bi-play-fill"></i> Execute
                     </button>
                     <button class="btn btn-outline-secondary" id="clearBtn">
@@ -286,6 +374,17 @@ Example: SELECT * FROM users WHERE status = 'active' LIMIT 10"></textarea>
                     <button class="btn btn-outline-success" id="saveBtn" title="Save Query">
                         <i class="bi bi-bookmark"></i> Save
                     </button>
+                    <div class="ms-3 d-flex align-items-center">
+                        <label class="form-label mb-0 me-2 text-muted">每页显示:</label>
+                        <select class="form-select form-select-sm" id="pageSizeSelect" style="width: auto;">
+                            <option value="25">25行</option>
+                            <option value="50" selected>50行</option>
+                            <option value="100">100行</option>
+                            <option value="200">200行</option>
+                            <option value="500">500行</option>
+                            <option value="1000">1000行</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -340,110 +439,10 @@ Example: SELECT * FROM users WHERE status = 'active' LIMIT 10"></textarea>
 {% endblock %}
 
 {% block extra_js %}
+<!-- CodeMirror JS for SQL syntax highlighting -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/sql-hint.min.js"></script>
 <script src="{% static 'js/queries/sql_query_new.js' %}"></script>
-<script>
-// 直接在模板中绑定点击事件，确保能触发
-document.addEventListener('DOMContentLoaded', function() {
-    var btn = document.getElementById('executeBtn');
-    if (btn) {
-        btn.addEventListener('click', function(e) {
-            console.log('>>> 按钮被点击了！');
-            e.preventDefault();
-            e.stopPropagation();
-
-            var sql = document.getElementById('sqlEditor').value.trim();
-            if (!sql) {
-                alert('请输入 SQL');
-                return;
-            }
-
-            // 获取连接ID（从隐藏字段或者其他地方）
-            var connectionId = selectedConnectionId;
-            if (!connectionId) {
-                alert('请先从左侧选择数据库连接');
-                return;
-            }
-
-            // 显示加载
-            document.getElementById('loadingOverlay').style.display = 'flex';
-
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', '/api/queries/execute/', true);
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
-            xhr.onload = function() {
-                document.getElementById('loadingOverlay').style.display = 'none';
-                if (xhr.status === 200) {
-                    var response = JSON.parse(xhr.responseText);
-                    if (response.code === 0) {
-                        alert('查询成功！返回 ' + response.data.row_count + ' 条记录');
-                    } else {
-                        alert('查询失败: ' + response.message);
-                    }
-                } else {
-                    alert('请求失败: ' + xhr.status);
-                }
-            };
-            xhr.onerror = function() {
-                document.getElementById('loadingOverlay').style.display = 'none';
-                alert('网络错误');
-            };
-            xhr.send(JSON.stringify({
-                connection_id: connectionId,
-                sql: sql
-            }));
-        });
-    }
-});
-
-function getCsrfToken() {
-    var match = document.cookie.match(/csrftoken=([^;]+)/);
-    return match ? match[1] : '';
-}
-
-function executeQueryDirect() {
-    console.log('>>> executeQueryDirect 被调用了！');
-
-    var sql = document.getElementById('sqlEditor').value.trim();
-    if (!sql) {
-        alert('请输入 SQL');
-        return;
-    }
-
-    // 获取连接ID
-    if (typeof selectedConnectionId === 'undefined' || !selectedConnectionId) {
-        alert('请先从左侧选择数据库连接');
-        return;
-    }
-
-    // 显示加载
-    document.getElementById('loadingOverlay').style.display = 'flex';
-
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/queries/execute/', true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
-    xhr.onload = function() {
-        document.getElementById('loadingOverlay').style.display = 'none';
-        if (xhr.status === 200) {
-            var response = JSON.parse(xhr.responseText);
-            if (response.code === 0) {
-                alert('查询成功！返回 ' + response.data.row_count + ' 条记录，耗时 ' + response.data.execution_time_ms + 'ms');
-            } else {
-                alert('查询失败: ' + response.message);
-            }
-        } else {
-            alert('请求失败: ' + xhr.status);
-        }
-    };
-    xhr.onerror = function() {
-        document.getElementById('loadingOverlay').style.display = 'none';
-        alert('网络错误');
-    };
-    xhr.send(JSON.stringify({
-        connection_id: selectedConnectionId,
-        sql: sql
-    }));
-}
-</script>
 {% endblock %}

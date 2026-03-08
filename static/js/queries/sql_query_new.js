@@ -3,157 +3,168 @@
  */
 
 // 全局状态
-let connectionTreeData = [];
-let selectedConnectionId = null;
-let selectedConnectionName = null;
+let sqlEditor = null;  // CodeMirror编辑器实例
+let currentQueryData = null;
+let currentPage = 1;
+let pageSize = 20;
+
+// SQL关键词列表
+const SQL_KEYWORDS = [
+    'SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'NOT', 'NULL', 'IS', 'IN', 'LIKE',
+    'BETWEEN', 'ORDER', 'BY', 'ASC', 'DESC', 'LIMIT', 'OFFSET', 'GROUP', 'HAVING',
+    'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'ON', 'AS', 'DISTINCT', 'COUNT',
+    'SUM', 'AVG', 'MIN', 'MAX', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'SHOW',
+    'DATABASES', 'TABLES', 'COLUMNS', 'FROM', 'USE'
+];
+
+// SQL函数列表
+const SQL_FUNCTIONS = [
+    'ABS', 'ACOS', 'ADDDATE', 'ADDTIME', 'ASCII', 'ASIN', 'ATAN', 'AVG',
+    'BIT_AND', 'BIT_OR', 'BIT_XOR', 'CEIL', 'CEILING', 'CHAR', 'CHAR_LENGTH',
+    'CHARACTER_LENGTH', 'COALESCE', 'CONCAT', 'CONCAT_WS', 'CONV', 'CONVERT',
+    'COS', 'COT', 'COUNT', 'CURDATE', 'CURRENT_DATE', 'CURRENT_TIME',
+    'CURRENT_TIMESTAMP', 'CURTIME', 'DATE', 'DATEDIFF', 'DATE_ADD', 'DATE_FORMAT',
+    'DATE_SUB', 'DAY', 'DAYNAME', 'DAYOFMONTH', 'DAYOFWEEK', 'DAYOFYEAR',
+    'DEGREES', 'ELT', 'EXP', 'EXTRACT', 'FIELD', 'FIND_IN_SET', 'FLOOR',
+    'FORMAT', 'FROM_DAYS', 'FROM_UNIXTIME', 'GREATEST', 'HEX', 'HOUR',
+    'IF', 'IFNULL', 'IN', 'INET_ATON', 'INET_NTOA', 'INSERT', 'INSTR',
+    'INTERVAL', 'ISNULL', 'LAST_INSERT_ID', 'LCASE', 'LEAST', 'LEFT', 'LENGTH',
+    'LIKE', 'LN', 'LOAD_FILE', 'LOCATE', 'LOG', 'LOG10', 'LOWER', 'LPAD',
+    'LTRIM', 'MAKE_SET', 'MAKEDATE', 'MAKETIME', 'MID', 'MINUTE', 'MOD',
+    'MONTH', 'MONTHNAME', 'NOW', 'NULLIF', 'OCT', 'OCTET_LENGTH', 'ORD',
+    'PERIOD_ADD', 'PERIOD_DIFF', 'PI', 'POW', 'POWER', 'QUARTER', 'QUOTE',
+    'RADIANS', 'RAND', 'ROUND', 'RPAD', 'RTRIM', 'SEC_TO_TIME', 'SECOND',
+    'SESSION_USER', 'SIGN', 'SIN', 'SLEEP', 'SOUNDEX', 'SPACE', 'SQRT',
+    'STD', 'STDDEV', 'STR_TO_DATE', 'STRCMP', 'SUBDATE', 'SUBSTRING',
+    'SUBSTRING_INDEX', 'SUM', 'SYSDATE', 'SYSTEM_USER', 'TAN', 'TIME',
+    'TIME_FORMAT', 'TIME_TO_SEC', 'TIMEDIFF', 'TIMESTAMP', 'TIMESTAMPADD',
+    'TIMESTAMPDIFF', 'TO_DAYS', 'TRIM', 'TRUNCATE', 'UCASE', 'UNHEX',
+    'UNIX_TIMESTAMP', 'UPPER', 'USER', 'UTC_DATE', 'UTC_TIME', 'UTC_TIMESTAMP',
+    'UUID', 'WEEK', 'WEEKDAY', 'WEEKOFYEAR', 'YEAR', 'YEARWEEK'
+];
 
 // 初始化
 $(document).ready(function() {
-    initConnectionTree();
     initEventHandlers();
-    initSQLEditor();
+    initSqlEditor();
+    initPageSizeSelector();
+
+    // 监听侧边栏连接状态变化
+    window.updateSqlQueryConnection = function(connectionId) {
+        console.log('SQL查询页面: 连接已更新为', connectionId);
+    };
+
+    window.updateSqlQueryDatabase = function(database) {
+        console.log('SQL查询页面: 数据库已更新为', database);
+    };
+
+    window.updateSqlQueryEditor = function(sql) {
+        console.log('SQL查询页面: 更新SQL编辑器内容');
+        if (sqlEditor) {
+            sqlEditor.setValue(sql);
+            // 自动执行查询
+            executeQuery();
+        }
+    };
 });
 
-// ============================================
-// 连接树相关功能
-// ============================================
+// 初始化SQL编辑器（CodeMirror）
+function initSqlEditor() {
+    const textarea = document.getElementById('sqlEditor');
 
-// 初始化连接树
-function initConnectionTree() {
-    loadConnectionTree();
-}
-
-// 加载连接树数据
-function loadConnectionTree() {
-    const $treeContainer = $('#connectionTree');
-    showTreeLoading($treeContainer);
-
-    $.ajax({
-        url: '/api/connections/tree/',
-        method: 'GET',
-        dataType: 'json',
-        success: function(response) {
-            if (response.code === 0) {
-                connectionTreeData = response.data || [];
-                renderConnectionTree(connectionTreeData);
-            } else {
-                showTreeError(response.message || '加载连接树失败');
+    // 创建CodeMirror编辑器
+    sqlEditor = CodeMirror.fromTextArea(textarea, {
+        mode: 'text/x-sql',
+        theme: 'monokai',
+        lineNumbers: true,
+        lineWrapping: true,
+        indentUnit: 4,
+        tabSize: 4,
+        indentWithTabs: true,
+        extraKeys: {
+            'Ctrl-Space': 'autocomplete',  // Ctrl+Space 自动提示
+            'Ctrl-Enter': executeQuery,   // Ctrl+Enter 执行查询
+            'Ctrl-/': 'toggleComment',    // Ctrl+/ 注释
+            'Tab': function(cm) {
+                if (cm.state.completionActive) {
+                    // 如果正在自动完成，按Tab键插入建议
+                    CodeMirror.commands.acceptCompletion(cm);
+                } else {
+                    // 否则，插入缩进
+                    cm.replaceSelection('    ', 'end');
+                }
             }
         },
-        error: function(xhr, status, error) {
-            console.error('加载连接树失败:', error);
-            showTreeError('无法连接到服务器，请检查网络');
+        hintOptions: {
+            completeSingle: false
+        },
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        foldGutter: true,
+        gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
+    });
+
+    // 设置编辑器大小
+    function resizeSqlEditor() {
+        const editorHeight = 300;
+        sqlEditor.setSize('100%', editorHeight);
+    }
+
+    // 初始化时设置一次
+    setTimeout(function() {
+        resizeSqlEditor();
+    }, 50);
+
+    // 监听窗口大小变化
+    $(window).on('resize', function() {
+        resizeSqlEditor();
+    });
+
+    // 自定义自动提示
+    CodeMirror.registerHelper('hint', 'sql', function(cm) {
+        const cursor = cm.getCursor();
+        const line = cm.getLine(cursor.line).slice(0, cursor.ch);
+
+        // 获取当前上下文
+        const lastWord = getLastWord(line);
+        const suggestions = [];
+
+        // 收集建议
+        if (lastWord) {
+            // 关键词和函数
+            const filteredKeywords = SQL_KEYWORDS.filter(word =>
+                word.toLowerCase().startsWith(lastWord.toLowerCase())
+            );
+            suggestions.push(...filteredKeywords.map(word => ({
+                text: word,
+                type: 'keyword',
+                displayText: word,
+                className: 'cm-sql-keyword'
+            })));
+
+            const filteredFunctions = SQL_FUNCTIONS.filter(word =>
+                word.toLowerCase().startsWith(lastWord.toLowerCase())
+            );
+            suggestions.push(...filteredFunctions.map(word => ({
+                text: word,
+                type: 'function',
+                displayText: word + '()',
+                className: 'cm-sql-function'
+            })));
         }
+
+        return {
+            list: suggestions,
+            from: CodeMirror.Pos(cursor.line, cursor.ch - lastWord.length),
+            to: CodeMirror.Pos(cursor.line, cursor.ch)
+        };
     });
 }
 
-// 显示树加载中
-function showTreeLoading($container) {
-    $container.html(`
-        <div class="empty-state py-3">
-            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-            <small class="text-muted d-block mt-1">加载连接...</small>
-        </div>
-    `);
-}
-
-// 渲染连接树
-function renderConnectionTree(connections) {
-    const $treeContainer = $('#connectionTree');
-
-    if (!connections || connections.length === 0) {
-        $treeContainer.html(`
-            <div class="empty-state py-3">
-                <i class="bi bi-inbox text-muted" style="font-size: 2rem;"></i>
-                <small class="text-muted d-block mt-1">暂无连接</small>
-                <a href="/connections/create/" class="btn btn-sm btn-outline-primary mt-2">
-                    <i class="bi bi-plus"></i> 创建连接
-                </a>
-            </div>
-        `);
-        return;
-    }
-
-    let html = '<ul class="tree-list">';
-    connections.forEach(function(conn) {
-        html += renderConnectionNode(conn);
-    });
-    html += '</ul>';
-
-    $treeContainer.html(html);
-}
-
-// 渲染连接节点
-function renderConnectionNode(conn) {
-    const hasChildren = conn.databases && conn.databases.length > 0;
-    const expandIcon = hasChildren 
-        ? '<i class="bi bi-chevron-right expand-icon"></i>' 
-        : '<span class="expand-icon" style="width:12px;display:inline-block;"></span>';
-
-    let html = `<li class="tree-item">`;
-    html += `<div class="tree-node connection-node" data-connection-id="${conn.id}" data-type="connection" data-name="${escapeHtml(conn.name)}">`;
-    html += `${expandIcon}`;
-    html += `<span class="icon"><i class="bi bi-hdd-network"></i></span>`;
-    html += `<span class="node-name">${escapeHtml(conn.name)}</span>`;
-    html += `</div>`;
-
-    if (hasChildren) {
-        html += `<ul class="tree-children database-list">`;
-        conn.databases.forEach(function(db) {
-            html += renderDatabaseNode(db);
-        });
-        html += `</ul>`;
-    }
-
-    html += `</li>`;
-    return html;
-}
-
-// 渲染数据库节点
-function renderDatabaseNode(db) {
-    const hasChildren = db.tables && db.tables.length > 0;
-    const expandIcon = hasChildren 
-        ? '<i class="bi bi-chevron-right expand-icon"></i>' 
-        : '<span class="expand-icon" style="width:12px;display:inline-block;"></span>';
-
-    let html = `<li class="tree-item">`;
-    html += `<div class="tree-node database-node" data-database="${escapeHtml(db.name)}" data-type="database">`;
-    html += `${expandIcon}`;
-    html += `<span class="icon"><i class="bi bi-database"></i></span>`;
-    html += `<span class="node-name">${escapeHtml(db.name)}</span>`;
-    html += `</div>`;
-
-    if (hasChildren) {
-        html += `<ul class="tree-children table-list">`;
-        db.tables.forEach(function(table) {
-            html += renderTableNode(table, db.name);
-        });
-        html += `</ul>`;
-    }
-
-    html += `</li>`;
-    return html;
-}
-
-// 渲染表节点
-function renderTableNode(table, dbName) {
-    let html = `<li class="tree-item">`;
-    html += `<div class="tree-node table-node" data-table="${escapeHtml(table)}" data-database="${escapeHtml(dbName)}" data-type="table">`;
-    html += `<span class="expand-icon" style="width:12px;display:inline-block;"></span>`;
-    html += `<span class="icon"><i class="bi bi-table"></i></span>`;
-    html += `<span class="node-name">${escapeHtml(table)}</span>`;
-    html += `</div>`;
-    html += `</li>`;
-    return html;
-}
-
-// 显示树错误
-function showTreeError(message) {
-    $('#connectionTree').html(`
-        <div class="alert alert-warning m-2" role="alert">
-            <i class="bi bi-exclamation-triangle"></i> ${message}
-        </div>
-    `);
+// 获取最后一个单词
+function getLastWord(text) {
+    const match = text.match(/[a-zA-Z_0-9]*$/);
+    return match ? match[0] : '';
 }
 
 // HTML转义
@@ -165,77 +176,14 @@ function escapeHtml(text) {
 }
 
 // ============================================
-// CSRF Token
-// ============================================
-function getCsrfToken() {
-    return document.querySelector('[name=csrfmiddlewaretoken]')?.value
-        || document.cookie.match(/csrftoken=([^;]+)/)?.[1]
-        || '';
-}
-
-// ============================================
 // 事件处理
 // ============================================
 
-// 初始化事件处理器
 function initEventHandlers() {
-    // 侧边栏折叠/展开
-    $('#treeToggleBtn').on('click', function() {
-        const $sidebar = $('#connectionTreeSidebar');
-        $sidebar.toggleClass('collapsed');
-        $(this).find('i').toggleClass('bi-chevron-left bi-chevron-right');
-    });
-
-    // 刷新连接树
-    $('#refreshTreeBtn').on('click', function() {
-        const $btn = $(this);
-        $btn.prop('disabled', true).find('i').addClass('spin');
-        loadConnectionTree();
-        setTimeout(() => {
-            $btn.prop('disabled', false).find('i').removeClass('spin');
-        }, 500);
-    });
-
-    // 连接树节点点击事件（委托）
-    $('#connectionTree').on('click', '.tree-node', function(e) {
-        e.stopPropagation();
-        const $node = $(this);
-        const nodeType = $node.data('type');
-
-        // 切换展开/折叠
-        const $children = $node.siblings('.tree-children');
-        if ($children.length > 0) {
-            $node.toggleClass('expanded');
-            $children.toggleClass('expanded');
-        }
-
-        // 处理节点选择
-        if (nodeType === 'connection') {
-            selectedConnectionId = $node.data('connection-id');
-            selectedConnectionName = $node.data('name');
-            
-            // 更新UI选中状态
-            $('.tree-node').removeClass('active');
-            $node.addClass('active');
-            
-            // 更新编辑器提示
-            updateEditorPlaceholder();
-            
-            showNotification(`已选择连接: ${selectedConnectionName}`, 'info');
-        } else if (nodeType === 'table') {
-            const tableName = $node.data('table');
-            const dbName = $node.data('database');
-            insertTableIntoEditor(tableName, dbName);
-        }
-    });
-
     // 执行查询
-    $('#executeBtn').click(function(e) {
+    $('#executeBtn').on('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('>>> Execute button clicked at', new Date().toISOString());
-        console.log('>>> Button type:', this.type);
-        console.log('>>> Button form:', this.form);
         executeQuery();
     });
 
@@ -249,25 +197,29 @@ function initEventHandlers() {
         saveQuery();
     });
 
-    // SQL编辑器快捷键
-    $('#sqlEditor').on('keydown', function(e) {
-        // Ctrl+Enter 执行查询
-        if (e.ctrlKey && e.key === 'Enter') {
-            e.preventDefault();
+    // 每页显示行数选择
+    $('#pageSizeSelect').on('change', function() {
+        pageSize = parseInt($(this).val());
+        // 如果正在显示查询结果，重新执行查询以应用新的每页显示行数
+        if (currentQueryData) {
             executeQuery();
         }
-        
-        // Tab 键缩进
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            const $textarea = $(this);
-            const start = $textarea[0].selectionStart;
-            const end = $textarea[0].selectionEnd;
-            const value = $textarea.val();
-            
-            $textarea.val(value.substring(0, start) + '  ' + value.substring(end));
-            $textarea[0].selectionStart = $textarea[0].selectionEnd = start + 2;
-        }
+    });
+}
+
+// 初始化每页显示行数选择器
+function initPageSizeSelector() {
+    // 从本地存储加载保存的设置
+    const savedPageSize = localStorage.getItem('pageSize');
+    if (savedPageSize) {
+        pageSize = parseInt(savedPageSize);
+        $('#pageSizeSelect').val(pageSize);
+    }
+
+    // 保存设置到本地存储
+    $('#pageSizeSelect').on('change', function() {
+        const selectedSize = parseInt($(this).val());
+        localStorage.setItem('pageSize', selectedSize);
     });
 }
 
@@ -275,79 +227,105 @@ function initEventHandlers() {
 // SQL 编辑器功能
 // ============================================
 
-// 初始化 SQL 编辑器
-function initSQLEditor() {
-    updateEditorPlaceholder();
+function clearEditor() {
+    if (sqlEditor) {
+        sqlEditor.setValue('');
+        sqlEditor.focus();
+    }
+    $('#emptyState').show();
+    $('#resultsContent').hide();
+    $('#errorContent').hide();
+    currentQueryData = null;
+    currentPage = 1;
 }
 
-// 更新编辑器占位符
-function updateEditorPlaceholder() {
-    const $editor = $('#sqlEditor');
-    if (selectedConnectionName) {
-        $editor.attr('placeholder', `已选择连接: ${selectedConnectionName}\n\n请输入 SQL 查询语句...\n例如：SELECT * FROM users WHERE status = 'active' LIMIT 10`);
-    } else {
-        $editor.attr('placeholder', `请先从左侧连接树中选择一个连接...\n\n然后输入 SQL 查询语句`);
-    }
-}
+function saveQuery() {
+    if (!sqlEditor) return;
 
-// 插入表名到编辑器
-function insertTableIntoEditor(tableName, dbName) {
-    const $editor = $('#sqlEditor');
-    const currentValue = $editor.val();
-    const insertText = dbName ? `\`${dbName}\`.\`${tableName}\`` : `\`${tableName}\``;
-
-    if (currentValue.trim() === '') {
-        $editor.val(`SELECT * FROM ${insertText} LIMIT 10`);
-    } else {
-        // 在光标位置插入
-        const cursorPos = $editor.prop('selectionStart');
-        const textBefore = currentValue.substring(0, cursorPos);
-        const textAfter = currentValue.substring(cursorPos);
-        $editor.val(textBefore + insertText + textAfter);
+    const sql = sqlEditor.getValue().trim();
+    if (!sql) {
+        showNotification('请先输入 SQL 查询语句', 'warning');
+        return;
     }
 
-    // 聚焦编辑器
-    $editor.focus();
-    showNotification(`已插入表名: ${tableName}`, 'success');
+    const name = prompt('请输入查询名称:');
+    if (!name) {
+        return;
+    }
+
+    $.ajax({
+        url: '/api/queries/saved/',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            name: name,
+            sql: sql,
+            connection_id: window.selectedConnectionId,
+            database: window.selectedDatabase
+        }),
+        dataType: 'json',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+        },
+        success: function(response) {
+            if (response.code === 0) {
+                showNotification('查询已保存', 'success');
+            } else {
+                showNotification(response.message || '保存失败', 'error');
+            }
+        },
+        error: function() {
+            showNotification('保存失败', 'error');
+        }
+    });
 }
 
 // ============================================
 // 查询执行
 // ============================================
 
-// 执行查询
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value
+        || document.cookie.match(/csrftoken=([^;]+)/)?.[1]
+        || '';
+}
+
 function executeQuery() {
-    const sql = $('#sqlEditor').val().trim();
+    if (!sqlEditor) return;
+
+    const sql = sqlEditor.getValue().trim();
 
     if (!sql) {
         showNotification('请输入 SQL 查询语句', 'warning');
-        $('#sqlEditor').focus();
+        sqlEditor.focus();
         return;
     }
 
-    if (!selectedConnectionId) {
-        showNotification('请先从左侧连接树中选择一个连接', 'warning');
+    if (!window.selectedConnectionId) {
+        showNotification('请先从左侧侧边栏选择一个数据库连接', 'warning');
         return;
     }
 
-    // 验证是否为 SELECT 语句
     const firstWord = sql.split(/\s+/)[0].toLowerCase();
-    if (firstWord !== 'select') {
-        showNotification('目前仅支持 SELECT 查询', 'warning');
+    if (firstWord !== 'select' && firstWord !== 'show') {
+        showNotification('目前仅支持 SELECT 或 SHOW 查询', 'warning');
         return;
     }
 
-    // 显示加载状态
+    currentPage = 1;
+    currentQueryData = null;
     showLoadingOverlay();
 
-    // 发送请求
     $.ajax({
         url: '/api/queries/execute/',
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({
-            connection_id: selectedConnectionId,
-            sql: sql
+            connection_id: window.selectedConnectionId,
+            sql: sql,
+            database: window.selectedDatabase,
+            page: currentPage,
+            page_size: pageSize
         }),
         dataType: 'json',
         beforeSend: function(xhr) {
@@ -361,9 +339,8 @@ function executeQuery() {
                 showError(response.message || '查询失败');
             }
         },
-        error: function(xhr, status, error) {
+        error: function(xhr) {
             hideLoadingOverlay();
-            console.error('查询请求失败:', error);
             let errorMsg = '请求失败，请检查网络连接';
             if (xhr.responseJSON && xhr.responseJSON.message) {
                 errorMsg = xhr.responseJSON.message;
@@ -373,22 +350,17 @@ function executeQuery() {
     });
 }
 
-// 显示加载遮罩
 function showLoadingOverlay() {
     $('#loadingOverlay').show();
 }
 
-// 隐藏加载遮罩
 function hideLoadingOverlay() {
     $('#loadingOverlay').hide();
 }
 
-// ============================================
-// 结果渲染
-// ============================================
-
-// 渲染查询结果
 function renderResults(data) {
+    currentQueryData = data;
+    currentPage = data.page || 1;
     $('#emptyState').hide();
     $('#errorContent').hide();
     $('#resultsContent').show();
@@ -396,15 +368,19 @@ function renderResults(data) {
     // 更新元信息
     const executionTime = data.execution_time_ms || 0;
     const rowCount = data.row_count || 0;
-    const isLimited = data.limited || false;
-    const limitText = isLimited ? ' (已限制前10条)' : '';
+    const totalCount = data.total_count || 0;
 
-    $('#resultsMeta').html(`
+    let metaHtml = `
         <span class="me-3"><i class="bi bi-clock"></i> ${executionTime.toFixed(2)}ms</span>
-        <span><i class="bi bi-list-ol"></i> ${rowCount} 条记录${limitText}</span>
-    `);
+        <span class="me-3"><i class="bi bi-list-ol"></i> 显示 ${rowCount} / ${totalCount} 条记录</span>
+    `;
 
-    // 渲染表格
+    if (data.total_pages && data.total_pages > 1) {
+        metaHtml += renderPagination(data);
+    }
+
+    $('#resultsMeta').html(metaHtml);
+
     const columns = data.columns || [];
     const rows = data.rows || [];
 
@@ -421,8 +397,8 @@ function renderResults(data) {
             tableHtml += '<tr>';
             columns.forEach(function(col) {
                 const value = row[col];
-                const displayValue = value === null || value === undefined 
-                    ? '<span class="text-muted fst-italic">NULL</span>' 
+                const displayValue = value === null || value === undefined
+                    ? '<span class="text-muted fst-italic">NULL</span>'
                     : escapeHtml(String(value));
                 tableHtml += `<td>${displayValue}</td>`;
             });
@@ -431,11 +407,104 @@ function renderResults(data) {
     }
 
     tableHtml += '</tbody></table>';
-
     $('#dataTableWrapper').html(tableHtml);
+
+    bindPaginationEvents();
 }
 
-// 显示错误
+function renderPagination(data) {
+    const page = data.page || 1;
+    const totalPages = data.total_pages || 1;
+
+    let html = '<span class="pagination-container ms-3">';
+
+    if (page > 1) {
+        html += `<button class="btn btn-sm btn-outline-primary page-btn" data-page="${page - 1}">
+            <i class="bi bi-chevron-left"></i>
+        </button>`;
+    } else {
+        html += `<button class="btn btn-sm btn-outline-secondary page-btn" disabled>
+            <i class="bi bi-chevron-left"></i>
+        </button>`;
+    }
+
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === page) {
+            html += `<button class="btn btn-sm btn-primary page-btn active" data-page="${i}">${i}</button>`;
+        } else {
+            html += `<button class="btn btn-sm btn-outline-primary page-btn" data-page="${i}">${i}</button>`;
+        }
+    }
+
+    if (page < totalPages) {
+        html += `<button class="btn btn-sm btn-outline-primary page-btn" data-page="${page + 1}">
+            <i class="bi bi-chevron-right"></i>
+        </button>`;
+    } else {
+        html += `<button class="btn btn-sm btn-outline-secondary page-btn" disabled>
+            <i class="bi bi-chevron-right"></i>
+        </button>`;
+    }
+
+    html += '</span>';
+    return html;
+}
+
+function bindPaginationEvents() {
+    $('.page-btn').off('click').on('click', function(e) {
+        e.preventDefault();
+        const $btn = $(this);
+        if ($btn.hasClass('active') || $btn.prop('disabled')) {
+            return;
+        }
+        const page = parseInt($btn.data('page'));
+        if (page && page > 0) {
+            goToPage(page);
+        }
+    });
+}
+
+function goToPage(page) {
+    if (!sqlEditor) return;
+
+    const sql = sqlEditor.getValue().trim();
+    if (!sql || !window.selectedConnectionId || !currentQueryData) {
+        return;
+    }
+
+    showLoadingOverlay();
+
+    $.ajax({
+        url: '/api/queries/execute/',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            connection_id: window.selectedConnectionId,
+            database: window.selectedDatabase,
+            sql: sql,
+            page: page,
+            page_size: pageSize
+        }),
+        dataType: 'json',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+        },
+        success: function(response) {
+            hideLoadingOverlay();
+            if (response.code === 0) {
+                renderResults(response.data);
+                $('#resultsContainer')[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                showError(response.message || '查询失败');
+            }
+        },
+        error: function(xhr) {
+            hideLoadingOverlay();
+            showError(xhr.responseJSON?.message || '请求失败');
+        }
+    });
+}
+
 function showError(message) {
     $('#emptyState').hide();
     $('#resultsContent').hide();
@@ -447,31 +516,6 @@ function showError(message) {
 // 工具函数
 // ============================================
 
-// 清空编辑器
-function clearEditor() {
-    $('#sqlEditor').val('').focus();
-    $('#emptyState').show();
-    $('#resultsContent').hide();
-    $('#errorContent').hide();
-}
-
-// 保存查询
-function saveQuery() {
-    const sql = $('#sqlEditor').val().trim();
-    if (!sql) {
-        showNotification('没有可保存的查询', 'warning');
-        return;
-    }
-
-    // 弹出保存对话框
-    const name = prompt('请输入查询名称:', '我的查询');
-    if (name) {
-        // TODO: 实现真正的保存功能，调用后端API
-        showNotification(`查询 "${name}" 已保存`, 'success');
-    }
-}
-
-// 显示通知
 function showNotification(message, type) {
     const alertType = type === 'error' ? 'danger' : type;
     const icons = {
@@ -482,7 +526,6 @@ function showNotification(message, type) {
     };
     const icon = icons[alertType] || icons['info'];
 
-    // 移除已存在的通知
     $('.floating-alert').remove();
 
     const alertDiv = $(`
@@ -497,7 +540,6 @@ function showNotification(message, type) {
 
     $('body').append(alertDiv);
 
-    // 3秒后自动隐藏
     setTimeout(function() {
         alertDiv.fadeOut('slow', function() {
             $(this).remove();

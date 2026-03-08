@@ -35,7 +35,14 @@
       "Bash(pip install openpyxl)",
       "Bash(findstr :8000)",
       "Bash(tasklist)",
-      "Bash(findstr python)"
+      "Bash(findstr python)",
+      "Bash(xargs grep -l -i \"pagination\\\\|page.*nav\\\\|paging\")",
+      "Bash(powershell -Command \"\\(Invoke-WebRequest -Uri ''http://127.0.0.1:8000/api/queries/configs/'' -UseBasicParsing\\).Content\")",
+      "Bash(powershell -Command \"\\(Invoke-WebRequest -Uri ''http://127.0.0.1:8000/queries/sql/'' -UseBasicParsing\\).Headers[''Content-Type'']\")",
+      "Bash(powershell -Command \"$response = Invoke-RestMethod -Uri ''http://127.0.0.1:8000/api/queries/configs/'' -Method Get; Write-Host ''API Status:'', $response.code; Write-Host ''Configs count:'', \\($response.data | Measure-Object\\).Count\")",
+      "Bash(powershell -Command \"try { $response = Invoke-RestMethod -Uri ''http://127.0.0.1:8000/api/queries/configs/'' -Method Get; Write-Host ''API Success! Code:'', $response.code; Write-Host ''Configs:'' \\(ConvertTo-Json $response.data\\) } catch { Write-Host ''API Error:'' $_Exception.Response.StatusCode.value__ }\")",
+      "Bash(start http://127.0.0.1:8000/queries/sql/)",
+      "Bash(node -e \":*)"
     ]
   }
 }

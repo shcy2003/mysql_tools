@@ -15,4 +15,6 @@ urlpatterns = [
     path('table_structure/', api_views.api_get_table_structure, name='api_table_structure'),
     # 导出Excel API
     path('export_excel/', api_views.api_export_excel, name='api_export_excel'),
+    # 获取系统配置API
+    path('configs/', api_views.api_get_configs, name='api_get_configs'),
 ]

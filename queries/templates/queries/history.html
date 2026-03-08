@@ -55,9 +55,13 @@
                     <label class="form-label">结束日期</label>
                     <input type="date" class="form-control" name="end_date" value="{{ filter_end_date|default:'' }}">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label">SQL关键字</label>
                     <input type="text" class="form-control" name="sql_keyword" placeholder="请输入SQL关键字" value="{{ filter_sql_keyword|default:'' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">最小执行时间(秒)</label>
+                    <input type="number" step="0.01" class="form-control" name="min_execution_time" placeholder="例如: 0.5" value="{{ filter_min_execution_time|default:'' }}">
                 </div>
                 <div class="col-md-1 d-flex align-items-end">
                     <button type="submit" class="btn btn-primary w-100">
@@ -124,7 +128,7 @@
                         <ul class="pagination justify-content-center">
                             {% if history.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ history.previous_page_number }}{% if filter_user %}&user={{ filter_user }}{% endif %}{% if filter_connection %}&connection={{ filter_connection }}{% endif %}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_sql_keyword %}&sql_keyword={{ filter_sql_keyword }}{% endif %}">上一页</a>
+                                    <a class="page-link" href="?page={{ history.previous_page_number }}{% if filter_user %}&user={{ filter_user }}{% endif %}{% if filter_connection %}&connection={{ filter_connection }}{% endif %}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_sql_keyword %}&sql_keyword={{ filter_sql_keyword }}{% endif %}{% if filter_min_execution_time %}&min_execution_time={{ filter_min_execution_time }}{% endif %}">上一页</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled"><span class="page-link">上一页</span></li>
@@ -134,7 +138,7 @@
 
                             {% if history.has_next %}
                                 <li class="page-item">
-                                    <a class="page-link" href="?page={{ history.next_page_number }}{% if filter_user %}&user={{ filter_user }}{% endif %}{% if filter_connection %}&connection={{ filter_connection }}{% endif %}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_sql_keyword %}&sql_keyword={{ filter_sql_keyword }}{% endif %}">下一页</a>
+                                    <a class="page-link" href="?page={{ history.next_page_number }}{% if filter_user %}&user={{ filter_user }}{% endif %}{% if filter_connection %}&connection={{ filter_connection }}{% endif %}{% if filter_start_date %}&start_date={{ filter_start_date }}{% endif %}{% if filter_end_date %}&end_date={{ filter_end_date }}{% endif %}{% if filter_sql_keyword %}&sql_keyword={{ filter_sql_keyword }}{% endif %}{% if filter_min_execution_time %}&min_execution_time={{ filter_min_execution_time }}{% endif %}">下一页</a>
                                 </li>
                             {% else %}
                                 <li class="page-item disabled"><span class="page-link">下一页</span></li>
