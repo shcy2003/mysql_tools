@@ -6,7 +6,7 @@
 let sqlEditor = null;  // CodeMirror编辑器实例
 let currentQueryData = null;
 let currentPage = 1;
-let pageSize = 20;
+let pageSize = 50;
 
 // SQL关键词列表
 const SQL_KEYWORDS = [
@@ -48,6 +48,8 @@ $(document).ready(function() {
     initEventHandlers();
     initSqlEditor();
     initPageSizeSelector();
+    checkSavedQuery();
+    initSavedQueriesModal();
 
     // 监听侧边栏连接状态变化
     window.updateSqlQueryConnection = function(connectionId) {
@@ -58,12 +60,14 @@ $(document).ready(function() {
         console.log('SQL查询页面: 数据库已更新为', database);
     };
 
-    window.updateSqlQueryEditor = function(sql) {
+    window.updateSqlQueryEditor = function(sql, autoExecute) {
         console.log('SQL查询页面: 更新SQL编辑器内容');
         if (sqlEditor) {
             sqlEditor.setValue(sql);
-            // 自动执行查询
-            executeQuery();
+            // 默认自动执行查询，但可以通过参数禁用
+            if (autoExecute !== false) {
+                executeQuery();
+            }
         }
     };
 });
@@ -516,6 +520,36 @@ function showError(message) {
 // 工具函数
 // ============================================
 
+// 检查是否需要使用保存的查询
+function checkSavedQuery() {
+    try {
+        const savedQueryData = localStorage.getItem('useSavedQuery');
+        if (savedQueryData) {
+            const queryData = JSON.parse(savedQueryData);
+            localStorage.removeItem('useSavedQuery');
+
+            // 显示通知
+            showNotification(`正在使用查询: ${queryData.name || '未命名查询'}`, 'info');
+
+            // 填充SQL编辑器
+            if (queryData.sql) {
+                sqlEditor.setValue(queryData.sql);
+            }
+
+            // 尝试选择连接和数据库
+            if (queryData.connectionId && window.updateSqlQueryConnection) {
+                window.updateSqlQueryConnection(parseInt(queryData.connectionId));
+            }
+
+            if (queryData.database && window.updateSqlQueryDatabase) {
+                window.updateSqlQueryDatabase(queryData.database);
+            }
+        }
+    } catch (e) {
+        console.error('Error loading saved query:', e);
+    }
+}
+
 function showNotification(message, type) {
     const alertType = type === 'error' ? 'danger' : type;
     const icons = {
@@ -545,4 +579,186 @@ function showNotification(message, type) {
             $(this).remove();
         });
     }, 3000);
+}
+
+// 初始化已保存查询模态框
+function initSavedQueriesModal() {
+    // 模态框显示时加载数据
+    $('#savedQueriesModal').on('show.bs.modal', function() {
+        loadSavedQueries();
+    });
+
+    // 全选/取消全选
+    $('#selectAll').on('change', function() {
+        const isChecked = $(this).prop('checked');
+        $('.query-checkbox').prop('checked', isChecked);
+        updateDeleteButton();
+    });
+
+    // 单个复选框变化
+    $(document).on('change', '.query-checkbox', function() {
+        updateSelectAll();
+        updateDeleteButton();
+    });
+
+    // 使用查询
+    $(document).on('click', '.use-query-btn', function() {
+        const sql = $(this).data('sql');
+        const connectionId = $(this).data('connection-id');
+        const database = $(this).data('database');
+
+        // 填充到SQL编辑器
+        if (sqlEditor) {
+            sqlEditor.setValue(sql);
+            showNotification('已加载已保存的查询', 'info');
+        }
+
+        // 更新选中的连接和数据库
+        if (connectionId) {
+            window.selectedConnectionId = connectionId;
+        }
+        if (database) {
+            window.selectedDatabase = database;
+        }
+
+        // 关闭模态框
+        $('#savedQueriesModal').modal('hide');
+    });
+
+    // 删除单个查询
+    $(document).on('click', '.delete-query-btn', function() {
+        const queryId = $(this).data('query-id');
+        if (confirm('确定要删除这个查询吗？')) {
+            deleteQueries([queryId]);
+        }
+    });
+
+    // 批量删除
+    $('#deleteSelectedBtn').on('click', function() {
+        const queryIds = [];
+        $('.query-checkbox:checked').each(function() {
+            queryIds.push(parseInt($(this).val()));
+        });
+
+        if (queryIds.length === 0) {
+            return;
+        }
+
+        if (confirm(`确定要删除选中的 ${queryIds.length} 个查询吗？`)) {
+            deleteQueries(queryIds);
+        }
+    });
+}
+
+// 加载已保存的查询
+function loadSavedQueries() {
+    $.ajax({
+        url: '/api/queries/saved/',
+        method: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.code === 0) {
+                renderSavedQueriesTable(response.data);
+            } else {
+                showNotification(response.message || '加载失败', 'error');
+            }
+        },
+        error: function() {
+            showNotification('加载失败，请重试', 'error');
+        }
+    });
+}
+
+// 渲染已保存查询的表格
+function renderSavedQueriesTable(queries) {
+    const $tbody = $('#savedQueriesTableBody');
+    $tbody.empty();
+
+    if (queries.length === 0) {
+        $tbody.append(`
+            <tr>
+                <td colspan="7" class="text-center py-4 text-muted">
+                    <div class="empty-state-icon">
+                        <i class="bi bi-inbox"></i>
+                    </div>
+                    <h5>暂无保存的查询</h5>
+                    <p>在 SQL 查询页面保存查询后，它们会显示在这里</p>
+                </td>
+            </tr>
+        `);
+        return;
+    }
+
+    queries.forEach(function(query) {
+        $tbody.append(`
+            <tr data-query-id="${query.id}">
+                <td>
+                    <input type="checkbox" class="query-checkbox form-check-input" value="${query.id}">
+                </td>
+                <td><strong>${query.name}</strong></td>
+                <td>
+                    <code class="text-muted small">${query.sql.slice(0, 80)}${query.sql.length > 80 ? '...' : ''}</code>
+                </td>
+                <td>${query.connection_name || '-'}</td>
+                <td>${query.database || '-'}</td>
+                <td>${query.updated_at}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-primary use-query-btn"
+                                data-sql="${query.sql}"
+                                data-connection-id="${query.connection_id || ''}"
+                                data-database="${query.database || ''}">
+                            <i class="bi bi-play"></i> 使用
+                        </button>
+                        <button type="button" class="btn btn-outline-danger delete-query-btn" data-query-id="${query.id}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `);
+    });
+
+    // 重置全选状态
+    $('#selectAll').prop('checked', false);
+    updateDeleteButton();
+}
+
+// 更新全选状态
+function updateSelectAll() {
+    const allCount = $('.query-checkbox').length;
+    const checkedCount = $('.query-checkbox:checked').length;
+    $('#selectAll').prop('checked', allCount > 0 && allCount === checkedCount);
+}
+
+// 更新删除按钮状态
+function updateDeleteButton() {
+    const checkedCount = $('.query-checkbox:checked').length;
+    $('#deleteSelectedBtn').prop('disabled', checkedCount === 0);
+}
+
+// 删除查询
+function deleteQueries(queryIds) {
+    $.ajax({
+        url: '/api/queries/saved/',
+        method: 'DELETE',
+        contentType: 'application/json',
+        data: JSON.stringify({ ids: queryIds }),
+        dataType: 'json',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+        },
+        success: function(response) {
+            if (response.code === 0) {
+                showNotification(response.message, 'success');
+                // 重新加载数据
+                loadSavedQueries();
+            } else {
+                showNotification(response.message || '删除失败', 'error');
+            }
+        },
+        error: function() {
+            showNotification('删除失败，请重试', 'error');
+        }
+    });
 }

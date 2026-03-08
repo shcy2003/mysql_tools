@@ -573,88 +573,20 @@ def api_export_excel(request):
 
 
 @login_required
-@require_http_methods(["GET"])
-def api_get_configs(request):
-    """
-    获取系统配置API
-
-    GET /api/queries/configs/
-
-    响应:
-        {
-            "code": 0,
-            "message": "success",
-            "data": {
-                "tables_per_page": "5",
-                "sql_query_page_size": "20",
-                "max_pagination_pages": "3",
-                "sidebar_default_width": "250",
-                "sidebar_min_width": "100",
-                "sidebar_max_width": "600"
-            }
-        }
-    """
-    try:
-        from queries.models import SystemConfig
-        configs = SystemConfig.objects.all()
-
-        config_dict = {}
-        for config in configs:
-            config_dict[config.name] = config.value
-
-        # 确保所有配置项都存在，使用默认值
-        default_config = {
-            "tables_per_page": "5",
-            "sql_query_page_size": "20",
-            "max_pagination_pages": "3",
-            "sidebar_default_width": "250",
-            "sidebar_min_width": "100",
-            "sidebar_max_width": "600"
-        }
-
-        # 合并配置，确保所有项都有值
-        merged_config = {**default_config, **config_dict}
-
-        return JsonResponse({
-            "code": 0,
-            "message": "success",
-            "data": merged_config
-        })
-
-    except Exception as e:
-        print(f"加载系统配置失败，使用默认值: {str(e)}")
-        # 无论如何都返回默认配置，而不是500错误
-        return JsonResponse({
-            "code": 0,
-            "message": "使用默认配置",
-            "data": {
-                "tables_per_page": "5",
-                "sql_query_page_size": "20",
-                "max_pagination_pages": "3",
-                "sidebar_default_width": "250",
-                "sidebar_min_width": "100",
-                "sidebar_max_width": "600"
-            }
-        })
-
-
-@login_required
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_execute_query(request):
     """
-    执行 SQL 查询（支持 SELECT 和 SHOW 命令）
+    执行 SQL 查询（仅支持 SELECT）
 
     POST /api/queries/execute/
-
+    
     请求体:
     {
         "connection_id": 1,
-        "sql": "SELECT * FROM users WHERE age > 18",
-        "page": 1,
-        "page_size": 20
+        "sql": "SELECT * FROM users WHERE age > 18"
     }
-
+    
     响应:
     {
         "code": 0,
@@ -663,10 +595,6 @@ def api_execute_query(request):
             "columns": ["id", "name", "email", "age"],
             "rows": [...],
             "row_count": 2,
-            "total_count": 100,
-            "page": 1,
-            "page_size": 20,
-            "total_pages": 5,
             "execution_time_ms": 15.23,
             "limited": false
         }
@@ -678,16 +606,8 @@ def api_execute_query(request):
         connection_id = data.get('connection_id')
         sql = data.get('sql', '').strip()
         database = data.get('database', None)
-        page = int(data.get('page', 1))
-        page_size = int(data.get('page_size', 20))
-
-        # 验证分页参数
-        if page < 1:
-            page = 1
-        if page_size < 1:
-            page_size = 20
-        elif page_size > 100:
-            page_size = 100
+        page = data.get('page', 1)
+        page_size = data.get('page_size', 20)
 
         # 验证必需参数
         if not connection_id:
@@ -702,27 +622,26 @@ def api_execute_query(request):
                 "message": "缺少必需参数: sql"
             }, status=400)
 
-        # 支持 SELECT 和 SHOW 查询
+        # 只允许 SELECT 查询
         sql_upper = sql.upper()
-        if not (sql_upper.startswith('SELECT') or sql_upper.startswith('SHOW')):
+        if not sql_upper.startswith('SELECT'):
             return JsonResponse({
                 "code": 400,
-                "message": "只允许执行 SELECT 或 SHOW 查询"
+                "message": "只允许执行 SELECT 查询"
             }, status=400)
-        
+
         # 检查危险关键字（简单防护）
         dangerous_keywords = ['DELETE', 'DROP', 'TRUNCATE', 'INSERT', 'UPDATE', 'ALTER']
         for keyword in dangerous_keywords:
             if keyword in sql_upper and keyword not in sql_upper.split('FROM')[0].split('WHERE')[0]:
                 # 更严格的检查：确保关键字不是列名的一部分
-                import re
                 pattern = r'\b' + keyword + r'\b'
                 if re.search(pattern, sql_upper):
                     return JsonResponse({
                         "code": 400,
                         "message": f"检测到危险关键字: {keyword}"
                     }, status=400)
-        
+
         # 获取连接（所有登录用户都可以使用任意连接）
         try:
             connection = MySQLConnection.objects.get(id=connection_id)
@@ -731,11 +650,11 @@ def api_execute_query(request):
                 "code": 404,
                 "message": "连接不存在"
             }, status=404)
-        
+
         # 执行查询
         import time
         start_time = time.time()
-        
+
         try:
             from connections.pool import get_connection_from_pool, release_connection
 
@@ -757,32 +676,23 @@ def api_execute_query(request):
                 conn = get_connection_from_pool(connection_params)
                 cursor = conn.cursor(dictionary=True)
 
-            # 判断是否需要分页
+            # 执行查询 - 采用简单直接的方法
             sql_upper = sql.upper()
-            needs_pagination = sql_upper.startswith('SELECT') and 'LIMIT' not in sql_upper
 
-            if needs_pagination:
-                # 先查询总数
-                try:
-                    count_sql = f"SELECT COUNT(*) as total FROM ({sql}) as subq"
-                    cursor.execute(count_sql)
-                    total_count = cursor.fetchone()['total']
-                except:
-                    # 如果计数查询失败，则不使用分页
-                    needs_pagination = False
-                    total_count = None
-
-            if needs_pagination:
-                # 再查询分页数据
-                offset = (page - 1) * page_size
-                paginated_sql = f"{sql} LIMIT %s OFFSET %s"
-                cursor.execute(paginated_sql, [page_size, offset])
-                rows = cursor.fetchall()
-            else:
-                # 不需要分页：直接执行查询
+            if 'LIMIT' in sql_upper or 'OFFSET' in sql_upper:
+                # 如果SQL已经包含LIMIT或OFFSET，直接执行
                 cursor.execute(sql)
                 rows = cursor.fetchall()
-                total_count = len(rows) if rows else 0
+                total_count = len(rows)
+                limited = False
+            else:
+                # 在内存中分页 - 简单且稳健
+                cursor.execute(sql)
+                all_rows = cursor.fetchall()
+                total_count = len(all_rows)
+                offset = (page - 1) * page_size
+                rows = all_rows[offset:offset + page_size]
+                limited = True
 
             # 获取列名
             columns = [desc[0] for desc in cursor.description] if cursor.description else []
@@ -793,9 +703,6 @@ def api_execute_query(request):
             # 应用脱敏规则
             from desensitization.utils import apply_masking_rules
             rows = apply_masking_rules(connection, sql, rows, request.user)
-
-            # 计算总页数
-            total_pages = (total_count + page_size - 1) // page_size if total_count > 0 else 0
 
             execution_time = (time.time() - start_time) * 1000
 
@@ -820,6 +727,9 @@ def api_execute_query(request):
             except Exception:
                 pass
 
+            # 计算总页数
+            total_pages = (total_count + page_size - 1) // page_size if total_count > 0 else 0
+
             return JsonResponse({
                 "code": 0,
                 "message": "success",
@@ -832,7 +742,7 @@ def api_execute_query(request):
                     "page_size": page_size,
                     "total_pages": total_pages,
                     "execution_time_ms": round(execution_time, 2),
-                    "limited": False
+                    "limited": limited
                 }
             })
             
@@ -853,3 +763,164 @@ def api_execute_query(request):
             "code": 500,
             "message": f"服务器内部错误: {str(e)}"
         }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def api_get_configs(request):
+    """
+    获取系统配置API
+
+    GET /api/queries/configs/
+
+    响应:
+        {
+            "code": 0,
+            "message": "success",
+            "data": {
+                "max_query_results": 10000,
+                "enable_masking": True,
+                "export_max_rows": 100000
+            }
+        }
+    """
+    try:
+        configs = {
+            "max_query_results": 10000,
+            "enable_masking": True,
+            "export_max_rows": 100000
+        }
+        return JsonResponse({
+            "code": 0,
+            "message": "success",
+            "data": configs
+        })
+    except Exception as e:
+        return JsonResponse({
+            "code": 500,
+            "message": f"服务器内部错误: {str(e)}"
+        }, status=500)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST", "GET", "DELETE"])
+def api_saved_queries(request):
+    """
+    保存的查询API - 列出、保存、删除查询
+
+    GET /api/queries/saved/ - 获取当前用户的所有保存查询
+    POST /api/queries/saved/ - 保存新查询
+    DELETE /api/queries/saved/ - 批量删除查询
+    """
+    from queries.models import SavedQuery
+
+    if request.method == "GET":
+        # 获取保存的查询列表
+        queries = SavedQuery.objects.filter(user=request.user).select_related('connection')
+        data = []
+        for q in queries:
+            data.append({
+                "id": q.id,
+                "name": q.name,
+                "sql": q.sql,
+                "connection_id": q.connection_id,
+                "connection_name": q.connection.name if q.connection else None,
+                "database": q.database,
+                "created_at": q.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                "updated_at": q.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        return JsonResponse({
+            "code": 0,
+            "message": "success",
+            "data": data
+        })
+
+    elif request.method == "POST":
+        # 保存新查询
+        try:
+            data = json.loads(request.body)
+            name = data.get('name', '').strip()
+            sql = data.get('sql', '').strip()
+            connection_id = data.get('connection_id')
+            database = data.get('database', '')
+
+            if not name or not sql:
+                return JsonResponse({
+                    "code": 400,
+                    "message": "名称和SQL都不能为空"
+                }, status=400)
+
+            # 获取连接对象
+            connection = None
+            if connection_id:
+                try:
+                    connection = MySQLConnection.objects.get(id=connection_id)
+                except MySQLConnection.DoesNotExist:
+                    pass
+
+            # 创建保存的查询
+            saved_query = SavedQuery.objects.create(
+                user=request.user,
+                name=name,
+                sql=sql,
+                connection=connection,
+                database=database
+            )
+
+            return JsonResponse({
+                "code": 0,
+                "message": "保存成功",
+                "data": {
+                    "id": saved_query.id
+                }
+            })
+
+        except json.JSONDecodeError:
+            return JsonResponse({
+                "code": 400,
+                "message": "JSON格式错误"
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                "code": 500,
+                "message": f"保存失败: {str(e)}"
+            }, status=500)
+
+    elif request.method == "DELETE":
+        # 批量删除查询
+        try:
+            data = json.loads(request.body)
+            query_ids = data.get('ids', [])
+
+            if not query_ids:
+                return JsonResponse({
+                    "code": 400,
+                    "message": "请选择要删除的查询"
+                }, status=400)
+
+            # 删除查询（只删除当前用户的）
+            deleted, _ = SavedQuery.objects.filter(
+                user=request.user,
+                id__in=query_ids
+            ).delete()
+
+            return JsonResponse({
+                "code": 0,
+                "message": f"成功删除 {deleted} 个查询",
+                "data": {
+                    "deleted_count": deleted
+                }
+            })
+
+        except json.JSONDecodeError:
+            return JsonResponse({
+                "code": 400,
+                "message": "JSON格式错误"
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                "code": 500,
+                "message": f"删除失败: {str(e)}"
+            }, status=500)
+

@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %} - 保存的查询{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    <i class="bi bi-bookmark-check"></i> 保存的查询
+                </h2>
+                <a href="{% url 'queries:sql_query' %}" class="btn btn-primary">
+                    <i class="bi bi-arrow-left"></i> 返回查询
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <input type="checkbox" id="selectAll" class="form-check-input me-2">
+                        <label for="selectAll" class="form-check-label mb-0">全选</label>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-danger btn-sm" id="deleteSelectedBtn" disabled>
+                            <i class="bi bi-trash"></i> 删除选中
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 40px;"></th>
+                                    <th>查询名称</th>
+                                    <th>SQL 预览</th>
+                                    <th>连接</th>
+                                    <th>数据库</th>
+                                    <th>更新时间</th>
+                                    <th style="width: 150px;">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for query in queries %}
+                                <tr data-query-id="{{ query.id }}">
+                                    <td>
+                                        <input type="checkbox" class="query-checkbox form-check-input" value="{{ query.id }}">
+                                    </td>
+                                    <td><strong>{{ query.name }}</strong></td>
+                                    <td>
+                                        <code class="text-muted small">{{ query.sql|truncatechars:80 }}</code>
+                                    </td>
+                                    <td>{{ query.connection_name|default:"-" }}</td>
+                                    <td>{{ query.database|default:"-" }}</td>
+                                    <td>{{ query.updated_at|date:"Y-m-d H:i" }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary use-query-btn"
+                                                    data-sql="{{ query.sql|escapejs }}"
+                                                    data-connection-id="{{ query.connection_id|default:'' }}"
+                                                    data-database="{{ query.database|default:'' }}">
+                                                <i class="bi bi-play"></i> 使用
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger delete-query-btn" data-query-id="{{ query.id }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">
+                                        <div class="empty-state-icon">
+                                            <i class="bi bi-inbox"></i>
+                                        </div>
+                                        <h5>暂无保存的查询</h5>
+                                        <p>在 SQL 查询页面保存查询后，它们会显示在这里</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // 全选/取消全选
+    $('#selectAll').on('change', function() {
+        const isChecked = $(this).prop('checked');
+        $('.query-checkbox').prop('checked', isChecked);
+        updateDeleteButton();
+    });
+
+    // 单个复选框变化
+    $(document).on('change', '.query-checkbox', function() {
+        updateSelectAll();
+        updateDeleteButton();
+    });
+
+    function updateSelectAll() {
+        const allCount = $('.query-checkbox').length;
+        const checkedCount = $('.query-checkbox:checked').length;
+        $('#selectAll').prop('checked', allCount > 0 && allCount === checkedCount);
+    }
+
+    function updateDeleteButton() {
+        const checkedCount = $('.query-checkbox:checked').length;
+        $('#deleteSelectedBtn').prop('disabled', checkedCount === 0);
+    }
+
+    // 使用查询
+    $(document).on('click', '.use-query-btn', function() {
+        const sql = $(this).data('sql');
+        const connectionId = $(this).data('connection-id');
+        const database = $(this).data('database');
+
+        // 保存到本地存储，传递给查询页面
+        localStorage.setItem('useSavedQuery', JSON.stringify({
+            sql: sql,
+            connectionId: connectionId,
+            database: database
+        }));
+
+        // 跳转到查询页面
+        window.location.href = '{% url "queries:sql_query" %}';
+    });
+
+    // 删除单个查询
+    $(document).on('click', '.delete-query-btn', function() {
+        const queryId = $(this).data('query-id');
+        if (confirm('确定要删除这个查询吗？')) {
+            deleteQueries([queryId]);
+        }
+    });
+
+    // 批量删除
+    $('#deleteSelectedBtn').on('click', function() {
+        const queryIds = [];
+        $('.query-checkbox:checked').each(function() {
+            queryIds.push(parseInt($(this).val()));
+        });
+
+        if (queryIds.length === 0) {
+            return;
+        }
+
+        if (confirm(`确定要删除选中的 ${queryIds.length} 个查询吗？`)) {
+            deleteQueries(queryIds);
+        }
+    });
+
+    function deleteQueries(queryIds) {
+        $.ajax({
+            url: '/api/queries/saved/',
+            method: 'DELETE',
+            contentType: 'application/json',
+            data: JSON.stringify({ ids: queryIds }),
+            dataType: 'json',
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+            },
+            success: function(response) {
+                if (response.code === 0) {
+                    showNotification(response.message, 'success');
+                    // 重新加载页面
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    showNotification(response.message || '删除失败', 'error');
+                }
+            },
+            error: function() {
+                showNotification('删除失败，请重试', 'error');
+            }
+        });
+    }
+
+    function getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value
+            || document.cookie.match(/csrftoken=([^;]+)/)?.[1]
+            || '';
+    }
+
+    function showNotification(message, type) {
+        const alertType = type === 'error' ? 'danger' : type;
+        const icons = {
+            'success': 'bi-check-circle',
+            'warning': 'bi-exclamation-triangle',
+            'danger': 'bi-x-circle',
+            'info': 'bi-info-circle'
+        };
+        const icon = icons[alertType] || icons['info'];
+
+        $('.floating-alert').remove();
+
+        const alertDiv = $(`
+            <div class="alert alert-${alertType} alert-dismissible fade show floating-alert" role="alert" style="position: fixed; top: 80px; right: 20px; z-index: 9999; min-width: 300px; max-width: 500px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                <div class="d-flex align-items-center">
+                    <i class="bi ${icon} me-2" style="font-size: 1.2rem;"></i>
+                    <div>${message}</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `);
+
+        $('body').append(alertDiv);
+
+        setTimeout(function() {
+            alertDiv.fadeOut('slow', function() {
+                $(this).remove();
+            });
+        }, 3000);
+    }
+});
+</script>
+{% endblock %}

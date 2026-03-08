@@ -44,11 +44,8 @@ def api_connection_tree(request):
     }
     """
     try:
-        # 获取用户有权限的连接
-        if request.user.role == 'admin':
-            connections = MySQLConnection.objects.all()
-        else:
-            connections = MySQLConnection.objects.filter(created_by=request.user)
+        # 获取所有连接（所有登录用户都可以使用任意连接）
+        connections = MySQLConnection.objects.all()
         
         tree_data = []
         
@@ -67,23 +64,24 @@ def api_connection_tree(request):
                 # 移除database参数以列出所有数据库
                 pool_params = connection_params.copy()
                 pool_params.pop('database', None)
-                
-                connection = get_connection_from_pool(pool_params)
+
+                # 直接创建连接，不使用连接池
+                connection = mysql.connector.connect(**pool_params)
                 cursor = connection.cursor(dictionary=True)
                 cursor.execute("SHOW DATABASES")
                 databases = cursor.fetchall()
-                
+
                 for db_row in databases:
                     db_name = db_row['Database']
                     # 跳过系统数据库
                     if db_name in ('information_schema', 'mysql', 'performance_schema', 'sys'):
                         continue
-                    
+
                     db_data = {
                         'name': db_name,
                         'tables': []
                     }
-                    
+
                     # 获取该数据库的表列表
                     try:
                         cursor.execute(f"USE `{db_name}`")
@@ -97,11 +95,11 @@ def api_connection_tree(request):
                                 db_data['tables'].append(table_name)
                     except Exception:
                         pass  # 忽略单个数据库的错误
-                    
+
                     conn_data['databases'].append(db_data)
-                
+
                 cursor.close()
-                release_connection(connection)
+                connection.close()
                 
             except Exception as e:
                 # 连接失败时，保留基本连接信息，但不包含数据库详情
@@ -138,15 +136,9 @@ def api_connection_databases(request, connection_id):
     }
     """
     try:
-        # 获取连接并检查权限
+        # 获取连接（所有登录用户都可以使用任意连接）
         try:
-            if request.user.role == 'admin':
-                connection = MySQLConnection.objects.get(id=connection_id)
-            else:
-                connection = MySQLConnection.objects.get(
-                    id=connection_id, 
-                    created_by=request.user
-                )
+            connection = MySQLConnection.objects.get(id=connection_id)
         except MySQLConnection.DoesNotExist:
             return JsonResponse({
                 "code": 404,
@@ -159,14 +151,15 @@ def api_connection_databases(request, connection_id):
             # 移除database参数以列出所有数据库
             pool_params = connection_params.copy()
             pool_params.pop('database', None)
-            
-            db_connection = get_connection_from_pool(pool_params)
+
+            # 直接创建连接，不使用连接池
+            db_connection = mysql.connector.connect(**pool_params)
             cursor = db_connection.cursor(dictionary=True)
             cursor.execute("SHOW DATABASES")
             databases = [row['Database'] for row in cursor.fetchall()]
-            
+
             cursor.close()
-            release_connection(db_connection)
+            db_connection.close()
             
             return JsonResponse({
                 "code": 0,
@@ -221,15 +214,9 @@ def api_connection_tables(request, connection_id):
                 "message": f"非法的数据库名: {database_name}"
             }, status=400)
         
-        # 获取连接并检查权限
+        # 获取连接（所有登录用户都可以使用任意连接）
         try:
-            if request.user.role == 'admin':
-                connection = MySQLConnection.objects.get(id=connection_id)
-            else:
-                connection = MySQLConnection.objects.get(
-                    id=connection_id, 
-                    created_by=request.user
-                )
+            connection = MySQLConnection.objects.get(id=connection_id)
         except MySQLConnection.DoesNotExist:
             return JsonResponse({
                 "code": 404,
@@ -241,11 +228,12 @@ def api_connection_tables(request, connection_id):
             connection_params = connection.get_connection_params()
             # 使用指定的数据库
             connection_params['database'] = database_name
-            
-            db_connection = get_connection_from_pool(connection_params)
+
+            # 直接创建连接，不使用连接池
+            db_connection = mysql.connector.connect(**connection_params)
             cursor = db_connection.cursor(dictionary=True)
             cursor.execute("SHOW TABLES")
-            
+
             tables = []
             table_key = f"Tables_in_{database_name}"
             for row in cursor.fetchall():
@@ -253,9 +241,9 @@ def api_connection_tables(request, connection_id):
                 table_name = row.get(table_key) or row.get(f"Tables_in_{{{database_name}}}")
                 if table_name:
                     tables.append(table_name)
-            
+
             cursor.close()
-            release_connection(db_connection)
+            db_connection.close()
             
             return JsonResponse({
                 "code": 0,

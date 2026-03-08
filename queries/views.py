@@ -28,58 +28,8 @@ def query_list_view(request):
 
 @login_required
 def sql_query_view(request):
-    """SQL 查询视图"""
-    if request.method == 'POST':
-        connection_id = request.POST.get('connection')
-        database = request.POST.get('database')
-        sql = request.POST.get('sql')
-
-        if not connection_id or not database or not sql:
-            messages.error(request, '请选择连接、数据库并输入 SQL 语句')
-            return render(request, 'queries/sql_query.html', {
-                'connections': get_available_connections(request.user)
-            })
-
-        connection = get_object_or_404(MySQLConnection, id=connection_id)
-
-        # 检查权限：只有管理员或创建者可以使用此连接查询
-        if request.user.role != 'admin' and connection.created_by != request.user:
-            messages.error(request, '您没有权限使用此连接！')
-            return redirect('queries:sql_query')
-
-        # 检查 SQL 是否为 SELECT
-        sql_upper = sql.strip().upper()
-        if not sql_upper.startswith('SELECT'):
-            messages.error(request, '仅支持 SELECT 查询语句！')
-            return render(request, 'queries/sql_query.html', {
-                'connections': get_available_connections(request.user),
-                'selected_connection': connection_id,
-                'sql': sql
-            })
-
-        success, result, execution_time = run_query(
-            connection, sql, request.user, request, database)
-
-        if success:
-            messages.success(
-                request, f'查询成功！共返回 {len(result)} 条记录，耗时 {execution_time:.2f}ms')
-        else:
-            messages.error(request, f'查询失败：{result}')
-
-        return render(request, 'queries/sql_query.html', {
-            'connections': get_available_connections(request.user),
-            'selected_connection': connection_id,
-            'selected_database': database,
-            'sql': sql,
-            'result': result if success else None,
-            'execution_time': execution_time,
-            'success': success,
-            'error': None if success else result
-        })
-    else:
-        return render(request, 'queries/sql_query.html', {
-            'connections': get_available_connections(request.user)
-        })
+    """SQL 查询视图（重定向到新页面）"""
+    return redirect('queries:sql_query_new')
 
 
 # Note: visual_query_view has been removed as per project requirements
@@ -164,4 +114,18 @@ def get_available_connections(user):
 @login_required
 def sql_query_new_view(request):
     """新的 SQL 查询界面（支持连接树和 AJAX 查询）"""
+    import os
+    from django.conf import settings
+    template_path = os.path.join(settings.BASE_DIR, 'templates', 'queries', 'sql_query_new.html')
+    print(f"Loading template from: {template_path}")
     return render(request, 'queries/sql_query_new.html', {})
+
+
+@login_required
+def saved_queries_view(request):
+    """保存的SQL查询视图"""
+    from .models import SavedQuery
+    queries = SavedQuery.objects.filter(user=request.user).select_related('connection').order_by('-updated_at')
+    return render(request, 'queries/saved_queries.html', {
+        'queries': queries
+    })

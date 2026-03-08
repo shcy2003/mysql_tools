@@ -20,19 +20,19 @@ def _get_pool_key(connection_params):
            f"{connection_params.get('user', '')}"
 
 
-def get_connection_pool(connection_params, pool_size=5):
+def get_connection_pool(connection_params, pool_size=20):
     """
     获取或创建连接池
-    
+
     Args:
         connection_params: MySQL连接参数
-        pool_size: 连接池大小，默认5
-    
+        pool_size: 连接池大小，默认20
+
     Returns:
         MySQL连接池对象
     """
     pool_key = _get_pool_key(connection_params)
-    
+
     with _pools_lock:
         if pool_key not in _connection_pools:
             # 创建新的连接池

@@ -58,3 +58,32 @@ class QueryHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.created_at}"
+
+
+class SavedQuery(models.Model):
+    """保存的SQL查询模型"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='saved_queries'
+    )
+    name = models.CharField(max_length=200, verbose_name='查询名称')
+    sql = models.TextField(verbose_name='SQL 语句')
+    connection = models.ForeignKey(
+        MySQLConnection,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='saved_queries'
+    )
+    database = models.CharField(max_length=200, blank=True, verbose_name='数据库名')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = '保存的查询'
+        verbose_name_plural = '保存的查询'
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.name} - {self.user.username}"

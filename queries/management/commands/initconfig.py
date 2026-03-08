@@ -17,11 +17,6 @@ class Command(BaseCommand):
                 'description': '左边栏每页显示的表数量'
             },
             {
-                'name': 'sql_query_page_size',
-                'value': '20',
-                'description': 'SQL查询结果每页显示的记录数'
-            },
-            {
                 'name': 'max_pagination_pages',
                 'value': '3',
                 'description': '分页控件最多显示的页码数量'

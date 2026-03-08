@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MySQL查询平台{% block title %}{% endblock %}</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap 5 Icons -->
@@ -141,6 +144,11 @@
         var $wrapper = $('#sidebar-tables-wrapper');
         var $pagination = $('#sidebar-tables-pagination');
 
+        // 重置搜索和分页状态
+        tablePageState.currentPage = 1;
+        tablePageState.searchText = '';
+        tablePageState.allTables = [];
+
         $container.show();
         $wrapper.html('<div class="text-muted py-1"><div class="spinner-border spinner-border-sm"></div> 加载中...</div>');
         $pagination.hide();
@@ -206,11 +214,7 @@
         tablesToShow.forEach(function(table) {
             html += '<div class="table-item-sidebar mb-1" data-table="' + table + '">' +
                     '<i class="bi bi-table"></i> ' + table +
-                    '<span class="table-row-count" id="row-count-' + table + '" style="display: none; margin-left: 8px; font-size: 0.75rem; color: #6c757d;"></span>' +
                     '<span class="table-actions" style="margin-left: auto;">' +
-                    '<button type="button" class="btn btn-sm btn-outline-primary query-table" data-table="' + table + '">' +
-                    '<i class="bi bi-play"></i> 查询' +
-                    '</button>' +
                     '<button type="button" class="btn btn-sm btn-outline-info view-structure" data-table="' + table + '">' +
                     '<i class="bi bi-info-circle"></i> 结构' +
                     '</button>' +
@@ -314,15 +318,155 @@
         }
     });
 
-    // 查询按钮点击事件
-    $(document).on('click', '.query-table', function(e) {
+    // 表结构按钮点击事件
+    $(document).on('click', '.view-structure', function(e) {
         e.stopPropagation();
         var tableName = $(this).data('table');
+        console.log('点击了表结构按钮:', tableName);
         if (tableName) {
-            autoQueryTableData(tableName);
-            getTableRowCount(tableName);
+            viewTableStructure(tableName);
         }
     });
+
+    // 查看表结构
+    function viewTableStructure(tableName) {
+        console.log('viewTableStructure 函数被调用:', tableName);
+        if (!window.selectedConnectionId || !window.selectedDatabase) {
+            console.log('请先选择数据库连接和数据库');
+            showNotification('请先选择数据库连接和数据库', 'warning');
+            return;
+        }
+
+        // 调用API获取表结构
+        $.get('/api/queries/table_structure/', {
+            connection_id: window.selectedConnectionId,
+            table: tableName,
+            database: window.selectedDatabase
+        }, function(response) {
+            if (response.code === 0) {
+                // 在弹窗中显示表结构
+                showTableStructureModal(tableName, response.data);
+            } else {
+                showNotification(response.message || '获取表结构失败', 'error');
+            }
+        }).fail(function() {
+            showNotification('获取表结构失败', 'error');
+        });
+    }
+
+    // 显示表结构弹窗
+    function showTableStructureModal(tableName, tableData) {
+        var columns = tableData.columns || tableData;
+        var indexes = tableData.indexes || [];
+
+        // 创建模态框HTML
+        var modalHtml = `
+            <div class="modal fade" id="tableStructureModal" tabindex="-1" role="dialog" aria-labelledby="tableStructureModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="tableStructureModalLabel">表结构 - ${tableName}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- 表结构标签页 -->
+                            <ul class="nav nav-pills mb-3" id="tableStructureTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="columns-tab" data-bs-toggle="pill" data-bs-target="#columns-tab-pane" type="button" role="tab" aria-controls="columns-tab-pane" aria-selected="true">字段信息</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="indexes-tab" data-bs-toggle="pill" data-bs-target="#indexes-tab-pane" type="button" role="tab" aria-controls="indexes-tab-pane" aria-selected="false">索引信息</button>
+                                </li>
+                            </ul>
+                            <div class="tab-content" id="tableStructureTabContent">
+                                <!-- 字段信息 -->
+                                <div class="tab-pane fade show active" id="columns-tab-pane" role="tabpanel" aria-labelledby="columns-tab">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>字段名</th>
+                                                    <th>数据类型</th>
+                                                    <th>是否允许NULL</th>
+                                                    <th>键类型</th>
+                                                    <th>默认值</th>
+                                                    <th>额外信息</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+        `;
+
+        columns.forEach(function(col) {
+            modalHtml += `
+                <tr>
+                    <td><code>${col.Field}</code></td>
+                    <td><code>${col.Type}</code></td>
+                    <td>${col.Null === 'YES' ? '是' : '否'}</td>
+                    <td>${col.Key || '-'}</td>
+                    <td><code>${col.Default || '-'}</code></td>
+                    <td>${col.Extra || '-'}</td>
+                </tr>
+            `;
+        });
+
+        modalHtml += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <!-- 索引信息 -->
+                                <div class="tab-pane fade" id="indexes-tab-pane" role="tabpanel" aria-labelledby="indexes-tab">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-hover">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>索引名</th>
+                                                    <th>字段名</th>
+                                                    <th>索引类型</th>
+                                                    <th>是否唯一</th>
+                                                    <th>排序方式</th>
+                                                    <th>基数</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+        `;
+
+        indexes.forEach(function(index) {
+            modalHtml += `
+                <tr>
+                    <td>${index.Key_name || '-'}</td>
+                    <td><code>${index.Column_name || '-'}</code></td>
+                    <td>${index.Index_type || '-'}</td>
+                    <td>${index.Non_unique ? '否' : '是'}</td>
+                    <td>${index.Collation || '-'}</td>
+                    <td>${index.Cardinality || '-'}</td>
+                </tr>
+            `;
+        });
+
+        modalHtml += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 移除已存在的模态框（防止重复）
+        $('#tableStructureModal').remove();
+        // 添加到DOM
+        $('body').append(modalHtml);
+        // 显示模态框
+        var modal = new bootstrap.Modal(document.getElementById('tableStructureModal'));
+        modal.show();
+    }
 
     // 自动查询表数据
     function autoQueryTableData(tableName) {

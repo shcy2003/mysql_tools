@@ -42,7 +42,14 @@
       "Bash(powershell -Command \"$response = Invoke-RestMethod -Uri ''http://127.0.0.1:8000/api/queries/configs/'' -Method Get; Write-Host ''API Status:'', $response.code; Write-Host ''Configs count:'', \\($response.data | Measure-Object\\).Count\")",
       "Bash(powershell -Command \"try { $response = Invoke-RestMethod -Uri ''http://127.0.0.1:8000/api/queries/configs/'' -Method Get; Write-Host ''API Success! Code:'', $response.code; Write-Host ''Configs:'' \\(ConvertTo-Json $response.data\\) } catch { Write-Host ''API Error:'' $_Exception.Response.StatusCode.value__ }\")",
       "Bash(start http://127.0.0.1:8000/queries/sql/)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(ls -la \"c:\\\\git\\\\mysql_query_platform\\\\queries\\\\templates\\\\queries\"\" 2>/dev/null || echo \"Directory not found \")",
+      "Bash(xargs grep -l \"查询按钮\\\\|查询.*按钮\")",
+      "Bash(xargs -0 rm -rf)",
+      "Bash(find . -name \"*.pyc\" -delete)",
+      "mcp__zai-mcp-server__analyze_image",
+      "Bash(wmic process where \"name=''python.exe''\" delete)",
+      "Bash(powershell -Command \"try { Invoke-RestMethod -Uri ''http://localhost:8000/api/connections/2/databases/'' -Method Get } catch { $_Exception.Response.StatusCode; $_Exception.Response.StatusDescription; [System.IO.StreamReader]::new\\($_Exception.Response.GetResponseStream\\(\\)\\).ReadToEnd\\(\\) }\")"
     ]
   }
 }
