@@ -33,12 +33,20 @@ def masking_rule_create_view(request):
         except:
             column_names = []
 
+        # 处理masking_params
+        masking_params = request.POST.get('masking_params')
+        if masking_params:
+            try:
+                masking_params = json.loads(masking_params)
+            except:
+                pass
+
         # 手动构建数据
         data = {
             'name': request.POST.get('name'),
             'column_names': column_names,
             'masking_type': request.POST.get('masking_type'),
-            'masking_params': request.POST.get('masking_params'),
+            'masking_params': masking_params,
         }
 
         form = MaskingRuleForm(data)
@@ -57,6 +65,11 @@ def masking_rule_create_view(request):
 
             messages.success(request, '脱敏规则创建成功！')
             return redirect('desensitization:masking_rule_list')
+        else:
+            # 表单验证失败，显示错误信息
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{error}')
     else:
         form = MaskingRuleForm()
 
@@ -80,12 +93,20 @@ def masking_rule_edit_view(request, rule_id):
         except:
             column_names = []
 
+        # 处理masking_params
+        masking_params = request.POST.get('masking_params')
+        if masking_params:
+            try:
+                masking_params = json.loads(masking_params)
+            except:
+                pass
+
         # 手动构建数据
         data = {
             'name': request.POST.get('name'),
             'column_names': column_names,
             'masking_type': request.POST.get('masking_type'),
-            'masking_params': request.POST.get('masking_params'),
+            'masking_params': masking_params,
         }
 
         form = MaskingRuleForm(data, instance=rule)
@@ -102,6 +123,11 @@ def masking_rule_edit_view(request, rule_id):
 
             messages.success(request, '脱敏规则更新成功！')
             return redirect('desensitization:masking_rule_list')
+        else:
+            # 表单验证失败，显示错误信息
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{error}')
     else:
         form = MaskingRuleForm(instance=rule)
 
@@ -177,4 +203,45 @@ def api_toggle_rule_status(request, rule_id):
             'code': 500,
             'message': f'操作失败: {str(e)}',
             'data': {}
+        })
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(['POST'])
+def api_check_column_exists(request):
+    """
+    检查列名是否已存在于其他脱敏规则中
+    POST /api/desensitization/check-column/
+
+    请求体: {"column_name": "phone", "exclude_rule_id": null}
+    返回: {"exists": true/false, "rule_name": "规则名称"}
+    """
+    try:
+        data = json.loads(request.body)
+        column_name = data.get('column_name')
+        exclude_rule_id = data.get('exclude_rule_id')
+
+        if not column_name:
+            return JsonResponse({'exists': False, 'error': '列名不能为空'})
+
+        # 查询所有规则
+        rules = MaskingRule.objects.all()
+        if exclude_rule_id:
+            rules = rules.exclude(pk=exclude_rule_id)
+
+        # 检查列名是否存在
+        for rule in rules:
+            if column_name in rule.column_names:
+                return JsonResponse({
+                    'exists': True,
+                    'rule_name': rule.name
+                })
+
+        return JsonResponse({'exists': False})
+
+    except Exception as e:
+        return JsonResponse({
+            'exists': False,
+            'error': str(e)
         })

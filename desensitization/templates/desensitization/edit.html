@@ -296,6 +296,38 @@
             }
         {% endif %}
 
+        // 检查列名是否在其他规则中已存在
+        function checkColumnExists(columnName) {
+            return new Promise(function(resolve, reject) {
+                $.ajax({
+                    url: "{% url 'desensitization:api_check_column_exists' %}",
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        'column_name': columnName,
+                        'exclude_rule_id': {{ form.instance.pk|default:'null' }}
+                    }),
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+                    },
+                    success: function(response) {
+                        resolve(response.exists);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('检查列名存在性失败:', status, error);
+                        resolve(false); // 网络错误时默认允许添加
+                    }
+                });
+            });
+        }
+
+        // 获取CSRF token
+        function getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                || document.cookie.match(/csrftoken=([^;]+)/)?.[1]
+                || '';
+        }
+
         // 添加列名按钮点击事件
         $('#btn-add-column').on('click', function() {
             console.log('Add column button clicked');
@@ -304,15 +336,22 @@
                 alert('请输入列名');
                 return;
             }
-            // 检查是否已存在
+            // 检查是否已在当前规则中存在
             if (columnList.indexOf(newColumn) !== -1) {
-                alert('该列名已存在');
+                alert('该列名已存在于当前规则中');
                 return;
             }
-            columnList.push(newColumn);
-            renderColumns();
-            $('#new_column_name').val('');
-            $('#addColumnModal').modal('hide');
+            // 检查是否已在其他规则中存在
+            checkColumnExists(newColumn).then(function(exists) {
+                if (exists) {
+                    alert('该列名已存在于其他脱敏规则中');
+                    return;
+                }
+                columnList.push(newColumn);
+                renderColumns();
+                $('#new_column_name').val('');
+                $('#addColumnModal').modal('hide');
+            });
         });
 
         // 表单提交前验证
