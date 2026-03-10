@@ -7,6 +7,11 @@ let sqlEditor = null;  // CodeMirror编辑器实例
 let currentQueryData = null;
 let currentPage = 1;
 let pageSize = 50;
+let currentTableName = null;  // 当前选中的表名
+
+// 字段列表状态
+let fieldsList = [];
+let fieldsPanelVisible = false;
 
 // SQL关键词列表
 const SQL_KEYWORDS = [
@@ -50,6 +55,7 @@ $(document).ready(function() {
     initPageSizeSelector();
     checkSavedQuery();
     initSavedQueriesModal();
+    initFieldsPanel();
 
     // 监听侧边栏连接状态变化
     window.updateSqlQueryConnection = function(connectionId) {
@@ -984,4 +990,153 @@ function deleteQueries(queryIds) {
             showNotification('删除失败，请重试', 'error');
         }
     });
+}
+
+// 初始化字段列表面板
+function initFieldsPanel() {
+    // 字段列表面板切换按钮
+    $('#toggleFieldsPanel').on('click', function() {
+        toggleFieldsPanel();
+    });
+
+    // 暴露字段列表加载函数给外部调用
+    window.loadFieldsList = loadFieldsList;
+}
+
+// 切换字段列表面板的显示/隐藏
+function toggleFieldsPanel() {
+    const panel = $('#fieldsPanel');
+    const btn = $('#toggleFieldsPanel');
+
+    if (fieldsPanelVisible) {
+        panel.hide();
+        btn.html('<i class="bi bi-list-columns"></i> 字段列表');
+        fieldsPanelVisible = false;
+    } else {
+        panel.show();
+        btn.html('<i class="bi bi-x-lg"></i> 隐藏');
+        fieldsPanelVisible = true;
+    }
+}
+
+// 加载字段列表
+function loadFieldsList(tableName) {
+    if (!window.selectedConnectionId || !window.selectedDatabase) {
+        showNotification('请先选择数据库连接和数据库', 'warning');
+        return;
+    }
+
+    currentTableName = tableName;
+    $('#currentTableName').text(tableName);
+
+    // 如果面板隐藏，自动打开
+    if (!fieldsPanelVisible) {
+        toggleFieldsPanel();
+    }
+
+    // 显示加载状态
+    $('#fieldsListContainer').html(`
+        <div class="fields-empty">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+            <p class="mt-2">加载字段中...</p>
+        </div>
+    `);
+
+    // 调用API获取表结构
+    $.get('/api/queries/table_structure/', {
+        connection_id: window.selectedConnectionId,
+        table: tableName,
+        database: window.selectedDatabase
+    }, function(response) {
+        if (response.code === 0) {
+            const columns = response.data.columns || response.data;
+            fieldsList = columns;
+            renderFieldsList(columns, tableName);
+        } else {
+            showNotification(response.message || '获取字段列表失败', 'error');
+            $('#fieldsListContainer').html(`
+                <div class="fields-empty">
+                    <div class="icon"><i class="bi bi-exclamation-triangle"></i></div>
+                    <p>加载字段失败</p>
+                </div>
+            `);
+        }
+    }).fail(function() {
+        showNotification('获取字段列表失败，请重试', 'error');
+        $('#fieldsListContainer').html(`
+            <div class="fields-empty">
+                <div class="icon"><i class="bi bi-exclamation-triangle"></i></div>
+                <p>加载字段失败</p>
+            </div>
+        `);
+    });
+}
+
+// 渲染字段列表
+function renderFieldsList(columns, tableName) {
+    const container = $('#fieldsListContainer');
+
+    if (!columns || columns.length === 0) {
+        container.html(`
+            <div class="fields-empty">
+                <div class="icon"><i class="bi bi-database"></i></div>
+                <p>该表没有字段</p>
+            </div>
+        `);
+        return;
+    }
+
+    let html = '<ul class="fields-list">';
+
+    columns.forEach(function(col, index) {
+        const fieldName = col.Field;
+        const dataType = col.Type;
+
+        html += `
+            <li class="field-item"
+                data-field-name="${fieldName}"
+                data-table-name="${tableName}"
+                title="双击插入字段：${fieldName}">
+                <span class="field-name">${fieldName}</span>
+                <span class="field-type text-muted small">${dataType}</span>
+            </li>
+        `;
+    });
+
+    html += '</ul>';
+    container.html(html);
+
+    // 绑定双击事件
+    $('.field-item').on('dblclick', function() {
+        const fieldName = $(this).data('field-name');
+        const tableName = $(this).data('table-name');
+        insertFieldAtCursor(fieldName, tableName);
+
+        // 添加高亮效果
+        $(this).addClass('highlight');
+        setTimeout(() => $(this).removeClass('highlight'), 600);
+    });
+}
+
+// 在光标位置插入字段
+function insertFieldAtCursor(fieldName, tableName) {
+    if (!sqlEditor) {
+        return;
+    }
+
+    // 格式化为用反引号包裹的字段名
+    const formattedField = '`' + fieldName + '`';
+
+    // 在光标位置插入
+    const cursor = sqlEditor.getCursor();
+    sqlEditor.replaceRange(formattedField, cursor);
+
+    // 将光标移到插入位置之后
+    sqlEditor.focus();
+    sqlEditor.setCursor({
+        line: cursor.line,
+        ch: cursor.ch + formattedField.length
+    });
+
+    showNotification(`已插入字段：${fieldName}`, 'success');
 }

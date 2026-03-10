@@ -315,6 +315,10 @@
             autoQueryTableData(tableName);
             // 获取表行数
             getTableRowCount(tableName);
+            // 加载字段列表到右侧面板
+            if (window.loadFieldsList) {
+                window.loadFieldsList(tableName);
+            }
         }
     });
 

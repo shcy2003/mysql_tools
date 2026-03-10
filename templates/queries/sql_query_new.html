@@ -355,6 +355,116 @@
     text-align: center;
     vertical-align: middle;
 }
+
+/* 字段列表面板样式 */
+.fields-panel-wrapper {
+    display: flex;
+    gap: 15px;
+}
+
+.editor-and-results {
+    flex: 1;
+    min-width: 0;
+}
+
+.fields-panel {
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.fields-panel-toggle {
+    margin-bottom: 10px;
+}
+
+.fields-panel-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    overflow: hidden;
+}
+
+.fields-panel-header {
+    padding: 10px 12px;
+    background: #e9ecef;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fields-panel-header h6 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.fields-panel-body {
+    padding: 10px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.fields-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.field-item {
+    padding: 8px 10px;
+    margin-bottom: 4px;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.field-item:hover {
+    background: #e7f1ff;
+    border-color: #0d6efd;
+}
+
+.field-item .field-name {
+    font-weight: 600;
+    color: #495057;
+}
+
+.field-item .field-type {
+    font-size: 11px;
+    color: #adb5bd;
+}
+
+.fields-empty {
+    text-align: center;
+    padding: 30px 15px;
+    color: #6c757d;
+    font-size: 12px;
+}
+
+.fields-empty .icon {
+    font-size: 32px;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+/* 字段列表高亮状态 */
+.field-item.highlight {
+    background: #fff3cd;
+    border-color: #ffc107;
+    animation: pulse 0.6s;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
 </style>
 {% endblock %}
 
@@ -364,8 +474,18 @@
         <div class="col-12">
             <!-- Main Content Area -->
             <div class="main-content-area">
-            <!-- SQL Editor Section -->
-            <div class="sql-editor-section">
+                <!-- Fields Panel Toggle -->
+                <div class="d-flex justify-content-end mb-2">
+                    <button class="btn btn-sm btn-outline-secondary fields-panel-toggle" id="toggleFieldsPanel">
+                        <i class="bi bi-list-columns"></i> 字段列表
+                    </button>
+                </div>
+
+                <div class="fields-panel-wrapper">
+                    <!-- Editor and Results -->
+                    <div class="editor-and-results">
+                        <!-- SQL Editor Section -->
+                        <div class="sql-editor-section">
                 <div class="mb-2">
                     <label class="form-label fw-bold">
                         <i class="bi bi-code-square"></i> SQL编辑器
@@ -439,6 +559,25 @@
                         </div>
                         <div class="p-3">
                             <div class="alert alert-danger" id="errorMessage"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fields Panel -->
+        <div class="fields-panel" id="fieldsPanel" style="display: none;">
+            <div class="fields-panel-card">
+                <div class="fields-panel-header">
+                    <h6><i class="bi bi-columns"></i> <span id="currentTableName">未选择表</span></h6>
+                </div>
+                <div class="fields-panel-body">
+                    <div id="fieldsListContainer">
+                        <div class="fields-empty">
+                            <div class="icon">
+                                <i class="bi bi-database"></i>
+                            </div>
+                            <p>在侧边栏选择数据表以查看字段</p>
                         </div>
                     </div>
                 </div>
