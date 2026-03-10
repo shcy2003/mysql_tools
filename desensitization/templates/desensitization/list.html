@@ -4,42 +4,83 @@
 
 {% block extra_css %}
 <style>
-    .rule-card {
-        border: none;
+    .rules-table-wrapper {
+        background: #fff;
         border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        transition: all 0.3s;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        overflow: hidden;
     }
-    .rule-card:hover {
-        box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    .rules-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
     }
-    .rule-card.disabled {
-        opacity: 0.6;
+    .rules-table thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    .rules-table th {
+        padding: 16px 12px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 14px;
+        letter-spacing: 0.3px;
+    }
+    .rules-table tbody tr {
+        border-bottom: 1px solid #f0f0f0;
+        transition: all 0.2s;
+    }
+    .rules-table tbody tr:hover {
+        background: #f8f9ff;
+    }
+    .rules-table tbody tr:last-child {
+        border-bottom: none;
+    }
+    .rules-table td {
+        padding: 14px 12px;
+        vertical-align: middle;
+    }
+    .rule-name {
+        font-weight: 600;
+        color: #333;
+        font-size: 15px;
     }
     .rule-type-badge {
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 500;
+        padding: 4px 10px;
+        border-radius: 16px;
+        font-size: 11px;
+        font-weight: 600;
+        display: inline-block;
     }
     .status-badge {
         padding: 4px 10px;
-        border-radius: 12px;
+        border-radius: 16px;
         font-size: 11px;
-        font-weight: 500;
+        font-weight: 600;
+        display: inline-block;
+    }
+    .rule-columns {
+        color: #666;
+        font-size: 13px;
+    }
+    .rule-params {
+        color: #888;
+        font-size: 12px;
+        font-family: 'Consolas', monospace;
     }
     .action-btn {
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
         padding: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 8px;
+        border-radius: 6px;
+        margin-right: 4px;
     }
     .toggle-btn {
-        padding: 4px 12px;
-        font-size: 12px;
+        padding: 4px 10px;
+        font-size: 11px;
     }
     .empty-state {
         text-align: center;
@@ -49,6 +90,10 @@
         font-size: 64px;
         color: #dee2e6;
         margin-bottom: 20px;
+    }
+    .date-text {
+        color: #888;
+        font-size: 12px;
     }
 </style>
 {% endblock %}
@@ -80,82 +125,79 @@
 </div>
 
 {% if rules %}
-<div class="row">
-    {% for rule in rules %}
-    <div class="col-md-6 col-lg-4 mb-4">
-        <div class="rule-card card h-100 {% if not rule.is_enabled %}disabled{% endif %}" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#ruleDetailModal-{{ rule.id }}">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                        <h6 class="mb-1">{{ rule.name }}</h6>
-                        <div class="d-flex gap-2">
-                            <span class="rule-type-badge bg-{% if rule.masking_type == 'full' %}danger{% elif rule.masking_type == 'partial' %}warning{% else %}info{% endif %} bg-opacity-10 text-{% if rule.masking_type == 'full' %}danger{% elif rule.masking_type == 'partial' %}warning{% else %}info{% endif %}">
-                                {{ rule.get_masking_type_display }}
-                            </span>
-                            <span class="status-badge bg-{% if rule.is_enabled %}success{% else %}secondary{% endif %} bg-opacity-10 text-{% if rule.is_enabled %}success{% else %}secondary{% endif %}">
-                                {% if rule.is_enabled %}
-                                <i class="bi bi-check-circle"></i> 启用
-                                {% else %}
-                                <i class="bi bi-slash-circle"></i> 禁用
-                                {% endif %}
-                            </span>
-                        </div>
-                    </div>
-                    {% if user.role == 'admin' %}
-                    <div class="dropdown">
-                        <button class="btn btn-link text-muted p-0" data-bs-toggle="dropdown">
-                            <i class="bi bi-three-dots-vertical"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{% url 'desensitization:masking_rule_edit' rule.id %}">
-                                <i class="bi bi-pencil me-2"></i>编辑
-                            </a></li>
-                            <li><a class="dropdown-item toggle-status" data-rule-id="{{ rule.id }}" href="javascript:void(0)">
-                                <i class="bi {% if rule.is_enabled %}bi-slash-circle{% else %}bi-check-circle{% endif %} me-2"></i>{% if rule.is_enabled %}禁用{% else %}启用{% endif %}
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="{% url 'desensitization:masking_rule_delete' rule.id %}">
-                                <i class="bi bi-trash me-2"></i>删除
-                            </a></li>
-                        </ul>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <div class="mb-3">
-                    <div class="d-flex align-items-center text-muted small mb-1">
-                        <i class="bi bi-columns me-2"></i>
-                        {{ rule.column_names|join:", " }}
-                    </div>
-                    <div class="d-flex align-items-center text-muted small">
-                        <i class="bi bi-gear me-2"></i>
-                        {{ rule.masking_params|truncatechars:30|default:"无参数" }}
-                    </div>
-                </div>
-
-                <div class="d-flex justify-content-between align-items-center pt-3 border-top">
-                    <small class="text-muted">
-                        <i class="bi bi-calendar me-1"></i>{{ rule.created_at|date:"Y-m-d" }}
-                    </small>
-                    {% if user.role == 'admin' %}
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-{% if rule.is_enabled %}outline-warning{% else %}outline-success{% endif %} btn-sm toggle-btn toggle-status" data-rule-id="{{ rule.id }}">
+<div class="rules-table-wrapper">
+    <div class="table-responsive">
+        <table class="rules-table">
+            <thead>
+                <tr>
+                    <th style="width: 220px;">规则名称</th>
+                    <th style="width: 100px;">类型</th>
+                    <th style="width: 100px;">状态</th>
+                    <th style="width: 200px;">应用字段</th>
+                    <th>脱敏参数</th>
+                    <th style="width: 120px;">创建时间</th>
+                    <th style="width: 150px;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rule in rules %}
+                <tr class="{% if not rule.is_enabled %}opacity-60{% endif %}">
+                    <td>
+                        <div class="rule-name">{{ rule.name }}</div>
+                    </td>
+                    <td>
+                        <span class="rule-type-badge bg-{% if rule.masking_type == 'full' %}danger{% elif rule.masking_type == 'partial' %}warning{% else %}info{% endif %} bg-opacity-10 text-{% if rule.masking_type == 'full' %}danger{% elif rule.masking_type == 'partial' %}warning{% else %}info{% endif %}">
+                            {{ rule.get_masking_type_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge bg-{% if rule.is_enabled %}success{% else %}secondary{% endif %} bg-opacity-10 text-{% if rule.is_enabled %}success{% else %}secondary{% endif %}">
                             {% if rule.is_enabled %}
-                            <i class="bi bi-slash-circle"></i> 禁用
-                            {% else %}
                             <i class="bi bi-check-circle"></i> 启用
+                            {% else %}
+                            <i class="bi bi-slash-circle"></i> 禁用
                             {% endif %}
-                        </button>
-                        <a href="{% url 'desensitization:masking_rule_edit' rule.id %}" class="btn btn-outline-primary btn-sm action-btn" title="编辑">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+                        </span>
+                    </td>
+                    <td>
+                        <div class="rule-columns">
+                            {{ rule.column_names|join:", " }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="rule-params">
+                            {{ rule.masking_params|default:"无参数" }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="date-text">
+                            <i class="bi bi-calendar me-1"></i>{{ rule.created_at|date:"Y-m-d" }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            {% if user.role == 'admin' %}
+                            <button class="btn btn-{% if rule.is_enabled %}outline-warning{% else %}outline-success{% endif %} btn-sm toggle-btn toggle-status" data-rule-id="{{ rule.id }}" title="{% if rule.is_enabled %}禁用{% else %}启用{% endif %}">
+                                {% if rule.is_enabled %}
+                                <i class="bi bi-slash-circle"></i>
+                                {% else %}
+                                <i class="bi bi-check-circle"></i>
+                                {% endif %}
+                            </button>
+                            <a href="{% url 'desensitization:masking_rule_edit' rule.id %}" class="btn btn-outline-primary btn-sm action-btn" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'desensitization:masking_rule_delete' rule.id %}" class="btn btn-outline-danger btn-sm action-btn" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-    {% endfor %}
 </div>
 {% else %}
 <div class="empty-state">
