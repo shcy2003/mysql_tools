@@ -49,7 +49,11 @@
       "Bash(find . -name \"*.pyc\" -delete)",
       "mcp__zai-mcp-server__analyze_image",
       "Bash(wmic process where \"name=''python.exe''\" delete)",
-      "Bash(powershell -Command \"try { Invoke-RestMethod -Uri ''http://localhost:8000/api/connections/2/databases/'' -Method Get } catch { $_Exception.Response.StatusCode; $_Exception.Response.StatusDescription; [System.IO.StreamReader]::new\\($_Exception.Response.GetResponseStream\\(\\)\\).ReadToEnd\\(\\) }\")"
+      "Bash(powershell -Command \"try { Invoke-RestMethod -Uri ''http://localhost:8000/api/connections/2/databases/'' -Method Get } catch { $_Exception.Response.StatusCode; $_Exception.Response.StatusDescription; [System.IO.StreamReader]::new\\($_Exception.Response.GetResponseStream\\(\\)\\).ReadToEnd\\(\\) }\")",
+      "Bash(venvScriptsactivate)",
+      "Bash(source venv/Scripts/activate)",
+      "Bash(ls -la venv/ venv/*/)",
+      "Bash(source venv/bin/activate)"
     ]
   }
 }

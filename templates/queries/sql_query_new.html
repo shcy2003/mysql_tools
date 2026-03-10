@@ -343,6 +343,18 @@
 .pagination-container .page-btn:hover:not(.active):not(:disabled) {
     background-color: #e9ecef;
 }
+
+/* 已保存查询表格复选框样式 */
+#savedQueriesTableBody .query-checkbox {
+    margin: 0;
+    vertical-align: middle;
+}
+
+#savedQueriesTableBody td:first-child {
+    padding: 8px 12px;
+    text-align: center;
+    vertical-align: middle;
+}
 </style>
 {% endblock %}
 
@@ -373,6 +385,9 @@
                     </button>
                     <button class="btn btn-outline-success" id="saveBtn" title="保存查询">
                         <i class="bi bi-bookmark"></i> 保存
+                    </button>
+                    <button class="btn btn-outline-warning" id="formatBtn" title="格式化SQL">
+                        <i class="bi bi-code-slash"></i> 格式化
                     </button>
                     <button type="button" class="btn btn-outline-info" id="viewSavedBtn" data-bs-toggle="modal" data-bs-target="#savedQueriesModal">
                         <i class="bi bi-list"></i> 已保存
@@ -444,10 +459,14 @@
             </div>
             <div class="modal-body">
                 <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <div>
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center">
                             <input type="checkbox" id="selectAll" class="form-check-input me-2">
-                            <label for="selectAll" class="form-check-label mb-0">全选</label>
+                            <label for="selectAll" class="form-check-label mb-0 me-3">全选</label>
+                            <div class="input-group input-group-sm" style="width: 300px;">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" id="searchSavedQueries" class="form-control" placeholder="搜索查询名称或SQL...">
+                            </div>
                         </div>
                         <div>
                             <button type="button" class="btn btn-danger btn-sm" id="deleteSelectedBtn" disabled>
@@ -466,7 +485,7 @@
                                         <th>连接</th>
                                         <th>数据库</th>
                                         <th>更新时间</th>
-                                        <th style="width: 150px;">操作</th>
+                                        <th style="width: 180px;">操作</th>
                                     </tr>
                                 </thead>
                                 <tbody id="savedQueriesTableBody">
@@ -479,6 +498,39 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑已保存查询模态框 -->
+<div class="modal fade" id="editSavedQueryModal" tabindex="-1" role="dialog" aria-labelledby="editSavedQueryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editSavedQueryModalLabel">
+                    <i class="bi bi-pencil-square"></i> 编辑查询
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editSavedQueryForm">
+                    <input type="hidden" id="editQueryId">
+                    <div class="mb-3">
+                        <label for="editQueryName" class="form-label fw-bold">查询名称</label>
+                        <input type="text" class="form-control" id="editQueryName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editQuerySql" class="form-label fw-bold">SQL 语句</label>
+                        <textarea class="form-control" id="editQuerySql" rows="10" style="font-family: 'Consolas', 'Monaco', 'Courier New', monospace;"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveEditedQueryBtn">
+                    <i class="bi bi-check-lg"></i> 保存
+                </button>
             </div>
         </div>
     </div>
@@ -499,5 +551,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/sql/sql.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/sql-hint.min.js"></script>
+<!-- SQL Formatter -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql-formatter/3.1.0/sql-formatter.min.js"></script>
 <script src="{% static 'js/queries/sql_query_new.js' %}"></script>
 {% endblock %}

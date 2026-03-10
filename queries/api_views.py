@@ -804,13 +804,14 @@ def api_get_configs(request):
 
 @login_required
 @csrf_exempt
-@require_http_methods(["POST", "GET", "DELETE"])
+@require_http_methods(["POST", "GET", "DELETE", "PUT"])
 def api_saved_queries(request):
     """
-    保存的查询API - 列出、保存、删除查询
+    保存的查询API - 列出、保存、更新、删除查询
 
     GET /api/queries/saved/ - 获取当前用户的所有保存查询
     POST /api/queries/saved/ - 保存新查询
+    PUT /api/queries/saved/ - 更新已有查询
     DELETE /api/queries/saved/ - 批量删除查询
     """
     from queries.models import SavedQuery
@@ -885,6 +886,57 @@ def api_saved_queries(request):
             return JsonResponse({
                 "code": 500,
                 "message": f"保存失败: {str(e)}"
+            }, status=500)
+
+    elif request.method == "PUT":
+        # 更新已有查询
+        try:
+            data = json.loads(request.body)
+            query_id = data.get('id')
+            name = data.get('name', '').strip()
+            sql = data.get('sql', '').strip()
+
+            if not query_id:
+                return JsonResponse({
+                    "code": 400,
+                    "message": "查询ID不能为空"
+                }, status=400)
+
+            if not name or not sql:
+                return JsonResponse({
+                    "code": 400,
+                    "message": "名称和SQL都不能为空"
+                }, status=400)
+
+            # 查找并更新查询（只允许更新当前用户的）
+            try:
+                saved_query = SavedQuery.objects.get(id=query_id, user=request.user)
+                saved_query.name = name
+                saved_query.sql = sql
+                saved_query.save()
+
+                return JsonResponse({
+                    "code": 0,
+                    "message": "更新成功",
+                    "data": {
+                        "id": saved_query.id
+                    }
+                })
+            except SavedQuery.DoesNotExist:
+                return JsonResponse({
+                    "code": 404,
+                    "message": "查询不存在或无权限"
+                }, status=404)
+
+        except json.JSONDecodeError:
+            return JsonResponse({
+                "code": 400,
+                "message": "JSON格式错误"
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                "code": 500,
+                "message": f"更新失败: {str(e)}"
             }, status=500)
 
     elif request.method == "DELETE":

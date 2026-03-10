@@ -201,6 +201,11 @@ function initEventHandlers() {
         saveQuery();
     });
 
+    // 格式化SQL
+    $('#formatBtn').on('click', function() {
+        formatSql();
+    });
+
     // 每页显示行数选择
     $('#pageSizeSelect').on('change', function() {
         pageSize = parseInt($(this).val());
@@ -209,6 +214,101 @@ function initEventHandlers() {
             executeQuery();
         }
     });
+}
+
+// 格式化SQL
+function formatSql() {
+    if (!sqlEditor) {
+        return;
+    }
+
+    const sql = sqlEditor.getValue().trim();
+    if (!sql) {
+        showNotification('请先输入SQL查询语句', 'warning');
+        return;
+    }
+
+    try {
+        // 使用 sql-formatter 库格式化SQL (兼容旧版本API)
+        let formattedSql;
+        if (typeof sqlFormatter !== 'undefined' && sqlFormatter.format) {
+            try {
+                // 尝试新版本API
+                formattedSql = sqlFormatter.format(sql, {
+                    indent: '    ',
+                    uppercase: false
+                });
+            } catch (e) {
+                // 回退到简单格式化
+                formattedSql = simpleSqlFormat(sql);
+            }
+        } else {
+            // 使用简单格式化作为备用方案
+            formattedSql = simpleSqlFormat(sql);
+        }
+
+        sqlEditor.setValue(formattedSql);
+        showNotification('SQL格式化成功', 'success');
+    } catch (error) {
+        console.error('SQL格式化错误:', error);
+        // 即使出错也尝试简单格式化
+        try {
+            const formattedSql = simpleSqlFormat(sql);
+            sqlEditor.setValue(formattedSql);
+            showNotification('SQL格式化成功', 'success');
+        } catch (e) {
+            showNotification('SQL格式化失败，请检查SQL语法是否正确', 'error');
+        }
+    }
+}
+
+// 简单SQL格式化函数（作为备用方案）
+function simpleSqlFormat(sql) {
+    if (!sql) return sql;
+
+    let formatted = sql;
+
+    // 简单的关键词大写
+    const keywords = ['SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'INSERT', 'UPDATE', 'DELETE', 'FROM', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'ON', 'GROUP', 'BY', 'HAVING', 'ORDER', 'ASC', 'DESC', 'LIMIT', 'OFFSET', 'VALUES', 'SET', 'TABLE', 'INTO', 'CREATE', 'ALTER', 'DROP', 'TRUNCATE', 'INDEX', 'DATABASE', 'USE', 'SHOW', 'DESCRIBE', 'EXPLAIN'];
+
+    keywords.forEach(keyword => {
+        const regex = new RegExp('\\b' + keyword + '\\b', 'gi');
+        formatted = formatted.replace(regex, keyword);
+    });
+
+    // 在关键关键字前换行
+    const breakKeywords = ['SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET'];
+    breakKeywords.forEach(keyword => {
+        const regex = new RegExp('\\b(' + keyword + ')\\b', 'gi');
+        formatted = formatted.replace(regex, '\n$1');
+    });
+
+    // 移除多余的空行
+    formatted = formatted.replace(/\n\s*\n/g, '\n');
+
+    // 简单缩进
+    const lines = formatted.split('\n');
+    let indentLevel = 0;
+    const indented = lines.map((line, index) => {
+        line = line.trim();
+        if (!line) return '';
+
+        // 减少缩进的关键字
+        if (/^(FROM|WHERE|AND|OR|GROUP|ORDER|HAVING|LIMIT|OFFSET)\b/i.test(line) && indentLevel > 0) {
+            indentLevel--;
+        }
+
+        const indentedLine = '    '.repeat(indentLevel) + line;
+
+        // 增加缩进的关键字
+        if (/^(SELECT)\b/i.test(line)) {
+            indentLevel++;
+        }
+
+        return indentedLine;
+    });
+
+    return indented.join('\n').trim();
 }
 
 // 初始化每页显示行数选择器
@@ -588,6 +688,12 @@ function initSavedQueriesModal() {
         loadSavedQueries();
     });
 
+    // 搜索功能
+    $(document).on('keyup', '#searchSavedQueries', function() {
+        const searchText = $(this).val().toLowerCase().trim();
+        searchAndHighlightSavedQueries(searchText);
+    });
+
     // 全选/取消全选
     $('#selectAll').on('change', function() {
         const isChecked = $(this).prop('checked');
@@ -625,6 +731,27 @@ function initSavedQueriesModal() {
         $('#savedQueriesModal').modal('hide');
     });
 
+    // 编辑查询
+    $(document).on('click', '.edit-query-btn', function() {
+        const queryId = $(this).data('query-id');
+        const queryName = $(this).data('name');
+        const querySql = $(this).data('sql');
+
+        // 填充到编辑模态框
+        $('#editQueryId').val(queryId);
+        $('#editQueryName').val(queryName);
+        $('#editQuerySql').val(querySql);
+
+        // 显示编辑模态框
+        const editModal = new bootstrap.Modal(document.getElementById('editSavedQueryModal'));
+        editModal.show();
+    });
+
+    // 保存编辑的查询
+    $('#saveEditedQueryBtn').on('click', function() {
+        saveEditedQuery();
+    });
+
     // 删除单个查询
     $(document).on('click', '.delete-query-btn', function() {
         const queryId = $(this).data('query-id');
@@ -646,6 +773,87 @@ function initSavedQueriesModal() {
 
         if (confirm(`确定要删除选中的 ${queryIds.length} 个查询吗？`)) {
             deleteQueries(queryIds);
+        }
+    });
+}
+
+// 搜索并高亮已保存的查询
+function searchAndHighlightSavedQueries(searchText) {
+    $('#savedQueriesTableBody tr').each(function() {
+        const $row = $(this);
+        const queryName = $row.find('td:eq(1)').text().toLowerCase();
+        const querySql = $row.find('td:eq(2) code').text().toLowerCase();
+
+        if (!searchText) {
+            // 无搜索条件，显示所有行并移除高亮
+            $row.show();
+            $row.find('td:eq(1)').html($row.find('td:eq(1)').text());
+            $row.find('td:eq(2) code').html($row.find('td:eq(2) code').text());
+            return;
+        }
+
+        // 检查是否匹配
+        const matches = queryName.includes(searchText) || querySql.includes(searchText);
+
+        if (matches) {
+            $row.show();
+            // 高亮匹配的关键字
+            highlightText($row.find('td:eq(1)'), searchText);
+            highlightText($row.find('td:eq(2) code'), searchText);
+        } else {
+            $row.hide();
+        }
+    });
+}
+
+// 高亮文本
+function highlightText(element, searchText) {
+    if (!searchText) {
+        return;
+    }
+
+    const text = element.text();
+    const regex = new RegExp(`(${searchText})`, 'gi');
+    const highlighted = text.replace(regex, '<mark style="background: #ffc107; padding: 0 2px; border-radius: 2px;">$1</mark>');
+    element.html(highlighted);
+}
+
+// 保存编辑后的查询
+function saveEditedQuery() {
+    const queryId = $('#editQueryId').val();
+    const queryName = $('#editQueryName').val().trim();
+    const querySql = $('#editQuerySql').val().trim();
+
+    if (!queryName || !querySql) {
+        showNotification('查询名称和SQL都不能为空', 'warning');
+        return;
+    }
+
+    $.ajax({
+        url: '/api/queries/saved/',
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            id: queryId,
+            name: queryName,
+            sql: querySql
+        }),
+        dataType: 'json',
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+        },
+        success: function(response) {
+            if (response.code === 0) {
+                showNotification('查询已成功更新', 'success');
+                // 关闭模态框并重新加载数据
+                $('#editSavedQueryModal').modal('hide');
+                loadSavedQueries();
+            } else {
+                showNotification(response.message || '更新失败', 'error');
+            }
+        },
+        error: function(xhr) {
+            showNotification(xhr.responseJSON?.message || '请求失败', 'error');
         }
     });
 }
@@ -674,6 +882,9 @@ function renderSavedQueriesTable(queries) {
     const $tbody = $('#savedQueriesTableBody');
     $tbody.empty();
 
+    // 保存原始查询数据用于搜索
+    window.savedQueriesData = queries;
+
     if (queries.length === 0) {
         $tbody.append(`
             <tr>
@@ -690,14 +901,19 @@ function renderSavedQueriesTable(queries) {
     }
 
     queries.forEach(function(query) {
+        // 对特殊字符进行转义，避免 HTML 属性解析问题
+        const escapedName = escapeHtml(query.name);
+        const escapedSql = escapeHtml(query.sql);
+        const escapedSqlPreview = escapeHtml(query.sql.slice(0, 80) + (query.sql.length > 80 ? '...' : ''));
+
         $tbody.append(`
             <tr data-query-id="${query.id}">
                 <td>
                     <input type="checkbox" class="query-checkbox form-check-input" value="${query.id}">
                 </td>
-                <td><strong>${query.name}</strong></td>
-                <td>
-                    <code class="text-muted small">${query.sql.slice(0, 80)}${query.sql.length > 80 ? '...' : ''}</code>
+                <td data-query-name="${escapedName}"><strong>${escapedName}</strong></td>
+                <td data-query-sql="${escapedSql}">
+                    <code class="text-muted small">${escapedSqlPreview}</code>
                 </td>
                 <td>${query.connection_name || '-'}</td>
                 <td>${query.database || '-'}</td>
@@ -705,10 +921,16 @@ function renderSavedQueriesTable(queries) {
                 <td>
                     <div class="btn-group btn-group-sm">
                         <button type="button" class="btn btn-outline-primary use-query-btn"
-                                data-sql="${query.sql}"
+                                data-sql="${escapedSql}"
                                 data-connection-id="${query.connection_id || ''}"
                                 data-database="${query.database || ''}">
                             <i class="bi bi-play"></i> 使用
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary edit-query-btn"
+                                data-query-id="${query.id}"
+                                data-name="${escapedName}"
+                                data-sql="${escapedSql}">
+                            <i class="bi bi-pencil"></i> 编辑
                         </button>
                         <button type="button" class="btn btn-outline-danger delete-query-btn" data-query-id="${query.id}">
                             <i class="bi bi-trash"></i>
@@ -719,8 +941,9 @@ function renderSavedQueriesTable(queries) {
         `);
     });
 
-    // 重置全选状态
+    // 重置全选状态和搜索框
     $('#selectAll').prop('checked', false);
+    $('#searchSavedQueries').val('');
     updateDeleteButton();
 }
 
