@@ -10,6 +10,17 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
+                <!-- 语言选择 -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-globe"></i> 中文
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item active" href="#"><i class="bi bi-check-circle"></i> 中文</a></li>
+                        <li><a class="dropdown-item disabled" href="#"><i class="bi bi-translate"></i> 英语 <span class="badge bg-warning text-dark ms-1">开发中</span></a></li>
+                    </ul>
+                </li>
+
                 {% if user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
