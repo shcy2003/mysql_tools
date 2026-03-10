@@ -767,6 +767,96 @@ def api_execute_query(request):
 
 @login_required
 @require_http_methods(["GET"])
+def api_get_table_row_count(request):
+    """
+    获取表行数API
+
+    GET /api/queries/table_row_count/?connection_id=1&table=users&database=mydb
+
+    请求参数:
+        - connection_id: 数据库连接ID (必需)
+        - table: 表名 (必需)
+        - database: 数据库名 (可选)
+
+    响应:
+        {
+            "code": 0,
+            "message": "success",
+            "data": {
+                "row_count": 1000
+            }
+        }
+    """
+    try:
+        connection_id = request.GET.get('connection_id')
+        table = request.GET.get('table')
+        database = request.GET.get('database')
+
+        if not connection_id or not table:
+            return JsonResponse({
+                "code": 400,
+                "message": "缺少必需参数: connection_id 和 table"
+            }, status=400)
+
+        if not validate_identifier(table):
+            return JsonResponse({
+                "code": 400,
+                "message": f"非法的表名: {table}"
+            }, status=400)
+
+        try:
+            if request.user.role == 'admin':
+                connection = MySQLConnection.objects.get(id=connection_id)
+            else:
+                connection = MySQLConnection.objects.get(
+                    id=connection_id,
+                    created_by=request.user
+                )
+        except MySQLConnection.DoesNotExist:
+            return JsonResponse({
+                "code": 404,
+                "message": "连接不存在或无权限访问"
+            }, status=404)
+
+        try:
+            connection_params = connection.get_connection_params()
+            if database:
+                connection_params['database'] = database
+
+            import mysql.connector
+            conn = mysql.connector.connect(**connection_params)
+            cursor = conn.cursor(dictionary=True)
+
+            cursor.execute(f"SELECT COUNT(*) as total FROM `{table}`")
+            result = cursor.fetchone()
+            row_count = result['total'] if result and 'total' in result else 0
+
+            cursor.close()
+            conn.close()
+
+            return JsonResponse({
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "row_count": row_count
+                }
+            })
+
+        except mysql.connector.Error as e:
+            return JsonResponse({
+                "code": 500,
+                "message": f"数据库查询错误: {str(e)}"
+            }, status=500)
+
+    except Exception as e:
+        return JsonResponse({
+            "code": 500,
+            "message": f"服务器内部错误: {str(e)}"
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
 def api_get_configs(request):
     """
     获取系统配置API

@@ -13,6 +13,8 @@ urlpatterns = [
     path('execute/', api_views.api_execute_query, name='api_execute_query'),
     # 获取表结构API
     path('table_structure/', api_views.api_get_table_structure, name='api_table_structure'),
+    # 获取表行数API
+    path('table_row_count/', api_views.api_get_table_row_count, name='api_table_row_count'),
     # 导出Excel API
     path('export_excel/', api_views.api_export_excel, name='api_export_excel'),
     # 获取系统配置API

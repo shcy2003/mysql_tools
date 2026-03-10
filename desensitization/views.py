@@ -245,3 +245,55 @@ def api_check_column_exists(request):
             'exists': False,
             'error': str(e)
         })
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(['POST'])
+def api_test_masking_rule(request):
+    """
+    测试脱敏规则API
+    POST /api/desensitization/test-rule/
+
+    请求体: {"rule_id": 1, "test_value": "13812345678"}
+    返回: {"code": 0, "message": "success", "data": {"original": "13812345678", "masked": "138****5678"}}
+    """
+    try:
+        data = json.loads(request.body)
+        rule_id = data.get('rule_id')
+        test_value = data.get('test_value', '')
+
+        if not rule_id:
+            return JsonResponse({
+                'code': 400,
+                'message': '缺少规则ID',
+                'data': {}
+            })
+
+        try:
+            rule = MaskingRule.objects.get(id=rule_id)
+        except MaskingRule.DoesNotExist:
+            return JsonResponse({
+                'code': 404,
+                'message': '规则不存在',
+                'data': {}
+            })
+
+        from desensitization.utils import _apply_single_rule
+        masked_value = _apply_single_rule(rule, test_value)
+
+        return JsonResponse({
+            'code': 0,
+            'message': 'success',
+            'data': {
+                'original': test_value,
+                'masked': masked_value
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'code': 500,
+            'message': f'测试失败: {str(e)}',
+            'data': {}
+        })

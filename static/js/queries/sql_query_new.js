@@ -8,6 +8,8 @@ let currentQueryData = null;
 let currentPage = 1;
 let pageSize = 50;
 let currentTableName = null;  // 当前选中的表名
+let currentTableRowCount = null;  // 当前选中表的行数
+let lastExecutedSql = null;  // 最后执行的SQL
 
 // 字段列表状态
 let fieldsList = [];
@@ -200,11 +202,6 @@ function initEventHandlers() {
         executeQuery();
     });
 
-    // 清空
-    $('#clearBtn').on('click', function() {
-        clearEditor();
-    });
-
     // 保存查询
     $('#saveBtn').on('click', function() {
         saveQuery();
@@ -213,6 +210,11 @@ function initEventHandlers() {
     // 格式化SQL
     $('#formatBtn').on('click', function() {
         formatSql();
+    });
+
+    // 导出Excel
+    $('#exportBtn').on('click', function() {
+        exportQueryResult();
     });
 
     // 每页显示行数选择
@@ -427,6 +429,7 @@ function executeQuery() {
 
     currentPage = 1;
     currentQueryData = null;
+    lastExecutedSql = sql;  // 保存最后执行的SQL
     showLoadingOverlay();
 
     $.ajax({
@@ -459,6 +462,82 @@ function executeQuery() {
                 errorMsg = xhr.responseJSON.message;
             }
             showError(errorMsg);
+        }
+    });
+}
+
+// 导出查询结果为Excel
+function exportQueryResult() {
+    if (!lastExecutedSql || !window.selectedConnectionId) {
+        showNotification('请先执行查询', 'warning');
+        return;
+    }
+
+    showLoadingOverlay();
+
+    $.ajax({
+        url: '/api/queries/export_excel/',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            connection_id: window.selectedConnectionId,
+            sql: lastExecutedSql,
+            database: window.selectedDatabase
+        }),
+        xhrFields: {
+            responseType: 'blob'
+        },
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+        },
+        success: function(blob, status, xhr) {
+            hideLoadingOverlay();
+
+            // 创建下载链接
+            const filename = xhr.getResponseHeader('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] || 'query_result.xlsx';
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            showNotification('导出成功', 'success');
+        },
+        error: function(xhr) {
+            hideLoadingOverlay();
+            const errorMsg = xhr.responseJSON?.message || '导出失败';
+            showNotification(errorMsg, 'error');
+        }
+    });
+}
+
+// 获取表的行数
+function getTableRowCount(tableName) {
+    if (!window.selectedConnectionId || !window.selectedDatabase) {
+        return;
+    }
+
+    $.ajax({
+        url: '/api/queries/table_row_count/',
+        method: 'GET',
+        data: {
+            connection_id: window.selectedConnectionId,
+            table: tableName,
+            database: window.selectedDatabase
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.code === 0) {
+                const rowCount = response.data.row_count;
+                currentTableRowCount = rowCount;
+                $('#tableRowCount').text(`表行数: ${rowCount.toLocaleString()}`).show();
+            }
+        },
+        error: function() {
+            // 忽略错误
         }
     });
 }
@@ -1031,6 +1110,9 @@ function loadFieldsList(tableName) {
 
     currentTableName = tableName;
     $('#currentTableName').text(tableName);
+
+    // 获取表行数并显示
+    getTableRowCount(tableName);
 
     // 如果面板隐藏，自动打开
     if (!fieldsPanelVisible) {

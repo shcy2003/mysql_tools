@@ -184,6 +184,11 @@
                                 <i class="bi bi-check-circle"></i>
                                 {% endif %}
                             </button>
+                            {% endif %}
+                            <button class="btn btn-outline-info btn-sm action-btn test-rule" data-rule-id="{{ rule.id }}" data-rule-name="{{ rule.name }}" title="测试规则">
+                                <i class="bi bi-flask"></i>
+                            </button>
+                            {% if user.role == 'admin' %}
                             <a href="{% url 'desensitization:masking_rule_edit' rule.id %}" class="btn btn-outline-primary btn-sm action-btn" title="编辑">
                                 <i class="bi bi-pencil"></i>
                             </a>
@@ -300,6 +305,42 @@
 </div>
 {% endfor %}
 
+<!-- 规则测试模态框 -->
+<div class="modal fade" id="ruleTestModal" tabindex="-1" aria-labelledby="ruleTestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="ruleTestModalLabel">
+                    <i class="bi bi-flask me-2"></i>测试脱敏规则
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">规则名称</label>
+                    <div id="testRuleName" class="form-control-plaintext"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="testInputValue" class="form-label fw-bold">测试输入值</label>
+                    <input type="text" class="form-control" id="testInputValue" placeholder="请输入要测试的原始值">
+                </div>
+                <div class="mb-3">
+                    <label for="testOutputValue" class="form-label fw-bold">脱敏后值</label>
+                    <input type="text" class="form-control" id="testOutputValue" readonly placeholder="脱敏后的结果将显示在这里">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i> 关闭
+                </button>
+                <button type="button" class="btn btn-primary" id="testRuleBtn">
+                    <i class="bi bi-play-circle me-1"></i> 测试
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -342,6 +383,73 @@
                     btn.prop('disabled', false);
                 }
             });
+        });
+
+        // 测试规则按钮点击事件
+        $('.test-rule').on('click', function() {
+            var ruleId = $(this).data('rule-id');
+            var ruleName = $(this).data('rule-name');
+
+            // 重置表单
+            $('#testRuleName').text(ruleName);
+            $('#testInputValue').val('');
+            $('#testOutputValue').val('');
+
+            // 保存当前规则ID
+            $('#ruleTestModal').data('rule-id', ruleId);
+
+            // 显示模态框
+            var modal = new bootstrap.Modal(document.getElementById('ruleTestModal'));
+            modal.show();
+        });
+
+        // 测试按钮点击事件
+        $('#testRuleBtn').on('click', function() {
+            var ruleId = $('#ruleTestModal').data('rule-id');
+            var testValue = $('#testInputValue').val().trim();
+
+            if (!testValue) {
+                alert('请输入要测试的值');
+                $('#testInputValue').focus();
+                return;
+            }
+
+            var btn = $(this);
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> 测试中');
+
+            $.ajax({
+                url: '{% url "desensitization:api_test_masking_rule" %}',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    rule_id: ruleId,
+                    test_value: testValue
+                }),
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+                },
+                success: function(response) {
+                    if (response.code === 0) {
+                        $('#testOutputValue').val(response.data.masked);
+                    } else {
+                        alert(response.message || '测试失败');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Test rule error:', status, error);
+                    alert('测试失败，请重试');
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html('<i class="bi bi-play-circle me-1"></i> 测试');
+                }
+            });
+        });
+
+        // 测试输入框回车键事件
+        $('#testInputValue').on('keypress', function(e) {
+            if (e.which === 13) {
+                $('#testRuleBtn').click();
+            }
         });
     });
 </script>
