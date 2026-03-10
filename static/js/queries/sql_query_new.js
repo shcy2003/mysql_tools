@@ -114,6 +114,9 @@ function initSqlEditor() {
         gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
     });
 
+    // 启用语法错误检查
+    enableSyntaxErrorCheck();
+
     // 设置编辑器大小
     function resizeSqlEditor() {
         const editorHeight = 300;
@@ -1139,4 +1142,154 @@ function insertFieldAtCursor(fieldName, tableName) {
     });
 
     showNotification(`已插入字段：${fieldName}`, 'success');
+}
+
+// ============================================
+// 语法错误检查功能
+// ============================================
+
+// 启用语法错误检查
+function enableSyntaxErrorCheck() {
+    if (!sqlEditor) {
+        return;
+    }
+
+    // 存储当前的错误标记
+    sqlEditor.state.syntaxErrors = [];
+
+    // 监听编辑器内容变化
+    sqlEditor.on('change', function(cm, changeObj) {
+        // 使用防抖来避免频繁检查
+        if (sqlEditor.state.syntaxCheckTimeout) {
+            clearTimeout(sqlEditor.state.syntaxCheckTimeout);
+        }
+        sqlEditor.state.syntaxCheckTimeout = setTimeout(function() {
+            checkSyntaxErrors();
+        }, 500);
+    });
+
+    // 初始化时检查一次
+    setTimeout(checkSyntaxErrors, 1000);
+}
+
+// 检查SQL语法错误
+function checkSyntaxErrors() {
+    if (!sqlEditor) {
+        return;
+    }
+
+    const sql = sqlEditor.getValue();
+    const errors = [];
+
+    // 简单的SQL语法检查规则
+    const lines = sql.split('\n');
+
+    lines.forEach(function(line, lineNum) {
+        const trimmedLine = line.trim();
+
+        // 跳过空行和注释行
+        if (trimmedLine === '' || trimmedLine.startsWith('--')) {
+            return;
+        }
+
+        // 检查基本的语法错误
+        errors.push(...checkLineSyntax(trimmedLine, lineNum, lines));
+    });
+
+    // 显示错误标记
+    displaySyntaxErrors(errors);
+}
+
+// 检查单行SQL的语法
+function checkLineSyntax(line, lineNum, allLines = []) {
+    const errors = [];
+
+    // 检查未闭合的引号
+    const quoteCount = (line.match(/['"]/g) || []).length;
+    if (quoteCount % 2 !== 0) {
+        errors.push({
+            line: lineNum,
+            column: line.length,
+            message: '未闭合的引号'
+        });
+    }
+
+    // 注意：SELECT语句的完整检查需要考虑跨多行情况，暂时禁用单行检查
+    // 后续可以实现更智能的跨多行语法检查
+
+    // 检查未闭合的括号
+    const openParenCount = (line.match(/\(/g) || []).length;
+    const closeParenCount = (line.match(/\)/g) || []).length;
+    if (openParenCount !== closeParenCount) {
+        errors.push({
+            line: lineNum,
+            column: line.length,
+            message: '未闭合的括号'
+        });
+    }
+
+    // 检查常见的SQL关键字拼写错误（暂时禁用，避免误报）
+    // 后续可以实现更精确的拼写检查算法
+    // const commonKeywords = ['SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'INSERT', 'UPDATE', 'DELETE', 'JOIN'];
+
+    return errors;
+}
+
+// 显示语法错误标记
+function displaySyntaxErrors(errors) {
+    if (!sqlEditor) {
+        return;
+    }
+
+    // 清除旧的错误标记
+    if (sqlEditor.state.syntaxErrors) {
+        sqlEditor.state.syntaxErrors.forEach(error => {
+            sqlEditor.removeLineClass(error.line, 'gutter', 'error');
+            sqlEditor.removeLineClass(error.line, 'wrap', 'syntax-error');
+            if (error.widget) {
+                sqlEditor.removeLineWidget(error.widget);
+            }
+        });
+    }
+
+    // 保存新的错误信息
+    sqlEditor.state.syntaxErrors = errors;
+
+    // 显示新的错误标记
+    errors.forEach(error => {
+        // 在行号栏添加错误标记
+        sqlEditor.addLineClass(error.line, 'gutter', 'error');
+        sqlEditor.addLineClass(error.line, 'wrap', 'syntax-error');
+
+        // 添加错误提示小部件
+        const widget = createErrorWidget(error.message);
+        const lineHeight = sqlEditor.getScrollInfo().clientHeight / sqlEditor.lineCount();
+        const widgetElement = sqlEditor.addLineWidget(error.line, widget, {
+            coverGutter: false,
+            noHScroll: true
+        });
+
+        error.widget = widgetElement;
+    });
+}
+
+// 创建错误提示小部件
+function createErrorWidget(message) {
+    const div = document.createElement('div');
+    div.className = 'syntax-error-tooltip';
+    div.textContent = message;
+
+    // 添加样式
+    div.style.backgroundColor = '#dc3545';
+    div.style.color = 'white';
+    div.style.padding = '4px 8px';
+    div.style.borderRadius = '3px';
+    div.style.fontSize = '12px';
+    div.style.whiteSpace = 'nowrap';
+    div.style.maxWidth = '300px';
+    div.style.wordWrap = 'break-word';
+    div.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+    div.style.marginLeft = '10px';
+
+    return div;
 }
