@@ -331,19 +331,13 @@ def api_get_table_structure(request):
                 "message": f"非法的表名: {table}"
             }, status=400)
 
-        # 获取连接
+        # 获取连接（所有登录用户都可以使用任意连接）
         try:
-            if request.user.role == 'admin':
-                connection = MySQLConnection.objects.get(id=connection_id)
-            else:
-                connection = MySQLConnection.objects.get(
-                    id=connection_id,
-                    created_by=request.user
-                )
+            connection = MySQLConnection.objects.get(id=connection_id)
         except MySQLConnection.DoesNotExist:
             return JsonResponse({
                 "code": 404,
-                "message": "连接不存在或无权限访问"
+                "message": "连接不存在"
             }, status=404)
 
         # 执行查询获取表结构

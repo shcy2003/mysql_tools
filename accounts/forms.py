@@ -25,6 +25,25 @@ class LoginForm(AuthenticationForm):
         )
     )
 
+    def clean(self):
+        """自定义验证，提供更详细的错误提示"""
+        username = self.cleaned_data.get('username')
+        password = self.cleaned_data.get('password')
+
+        # 检查用户名是否为空
+        if not username:
+            raise forms.ValidationError('请输入用户名')
+
+        # 检查密码是否为空
+        if not password:
+            raise forms.ValidationError('请输入密码')
+
+        # 检查密码长度（如果太简单可以提示）
+        if len(password) < 4:
+            raise forms.ValidationError('密码长度不能少于4位')
+
+        return super().clean()
+
 
 class UserRegisterForm(UserCreationForm):
     """用户注册表单"""

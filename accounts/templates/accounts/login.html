@@ -386,7 +386,27 @@
                                     记住我
                                 </label>
                             </div>
-                            <a href="#" class="forgot-password">忘记密码？</a>
+                            <a href="#" class="forgot-password" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">忘记密码？</a>
+                        </div>
+
+                        <!-- 忘记密码弹框 -->
+                        <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-sm">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="forgotPasswordModalLabel">
+                                            <i class="bi bi-exclamation-triangle text-warning"></i> 忘记密码
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p>如果您忘记了密码，请联系系统管理员重置。</p>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">确定</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <button type="submit" class="btn btn-primary btn-login w-100">
