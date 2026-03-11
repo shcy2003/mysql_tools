@@ -417,12 +417,8 @@ def _apply_single_rule(rule, value):
 
             if replacement:
                 # 兼容两种语法：$1, $2 或 \1, \2
-                # 将 $1 转换为 \1
-                import re
-                replacement_fixed = re.sub(r'\$(\d+)', r'\\\1', replacement)
-
-                # 使用自定义替换
-                return regex.sub(replacement_fixed, value_str)
+                # 使用lambda函数动态替换捕获组变量，避免字符串转义问题
+                return regex.sub(lambda m: _replace_captured_groups(m, replacement), value_str)
             else:
                 # 默认替换：用*替换匹配的内容
                 return regex.sub('*', value_str)
@@ -431,6 +427,31 @@ def _apply_single_rule(rule, value):
             return '*' * len(value_str)
     else:
         return value_str
+
+
+def _replace_captured_groups(match_obj, replacement):
+    """
+    动态替换正则匹配中的捕获组变量
+
+    支持 $1, $2, ... 和 \1, \2, ... 两种语法
+    """
+    result = replacement
+
+    # 匹配所有 $1, $2, ... 格式的捕获组
+    dollar_pattern = re.compile(r'\$(\d+)')
+    result = dollar_pattern.sub(
+        lambda x: match_obj.group(int(x.group(1))) if int(x.group(1)) <= len(match_obj.groups()) else x.group(0),
+        result
+    )
+
+    # 匹配所有 \1, \2, ... 格式的捕获组
+    backslash_pattern = re.compile(r'\\(\d+)')
+    result = backslash_pattern.sub(
+        lambda x: match_obj.group(int(x.group(1))) if int(x.group(1)) <= len(match_obj.groups()) else x.group(0),
+        result
+    )
+
+    return result
 
 
 def apply_masking_rule(rule, value):
