@@ -168,7 +168,7 @@
         });
     }
 
-    // 表分页状态
+    // 表分页状态（初始值）
     var tablePageState = {
         currentPage: 1,
         searchText: '',
@@ -176,6 +176,27 @@
         tablesPerPage: 5,
         maxPaginationPages: 3
     };
+
+    // 加载系统配置并更新表分页状态
+    function initTablePageStateFromConfig() {
+        $.ajax({
+            url: '/api/queries/configs/',
+            method: 'GET',
+            async: false  // 同步加载，确保在其他函数调用前完成
+        }).done(function(response) {
+            if (response.code === 0 && response.data) {
+                var configs = response.data;
+                tablePageState.tablesPerPage = configs.tables_per_page || 5;
+                tablePageState.maxPaginationPages = configs.max_pagination_pages || 3;
+                console.log('表分页配置加载成功: 每页 ' + tablePageState.tablesPerPage + ' 条，最大 ' + tablePageState.maxPaginationPages + ' 页');
+            }
+        }).fail(function() {
+            console.error('加载系统配置失败，使用默认值');
+        });
+    }
+
+    // 初始化配置
+    initTablePageStateFromConfig();
 
     // 渲染表列表
     function renderTableList(tables) {

@@ -50,14 +50,42 @@ const SQL_FUNCTIONS = [
     'UUID', 'WEEK', 'WEEKDAY', 'WEEKOFYEAR', 'YEAR', 'YEARWEEK'
 ];
 
+// 加载系统配置
+function loadSystemConfigs() {
+    return $.ajax({
+        url: '/api/queries/configs/',
+        method: 'GET',
+        dataType: 'json'
+    }).done(function(response) {
+        if (response.code === 0 && response.data) {
+            const configs = response.data;
+
+            // 从服务器配置设置默认分页大小
+            if (configs.sql_query_page_size) {
+                pageSize = configs.sql_query_page_size;
+                localStorage.setItem('pageSize', pageSize);
+                // 更新下拉框选中状态
+                $('#pageSizeSelect').val(pageSize);
+            }
+
+            console.log('系统配置加载成功:', configs);
+        }
+    }).fail(function(xhr, status, error) {
+        console.error('加载系统配置失败:', error);
+    });
+}
+
 // 初始化
 $(document).ready(function() {
-    initEventHandlers();
-    initSqlEditor();
-    initPageSizeSelector();
-    checkSavedQuery();
-    initSavedQueriesModal();
-    initFieldsPanel();
+    // 先加载系统配置，再初始化其他组件
+    loadSystemConfigs().then(() => {
+        initEventHandlers();
+        initSqlEditor();
+        initPageSizeSelector();
+        checkSavedQuery();
+        initSavedQueriesModal();
+        initFieldsPanel();
+    });
 
     // 监听侧边栏连接状态变化
     window.updateSqlQueryConnection = function(connectionId) {

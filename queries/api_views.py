@@ -864,15 +864,25 @@ def api_get_configs(request):
             "data": {
                 "max_query_results": 10000,
                 "enable_masking": True,
-                "export_max_rows": 100000
+                "export_max_rows": 100000,
+                "tables_per_page": 5,
+                "sql_query_page_size": 20
             }
         }
     """
     try:
+        from queries.models import SystemConfig
+
         configs = {
-            "max_query_results": 10000,
-            "enable_masking": True,
-            "export_max_rows": 100000
+            "max_query_results": SystemConfig.get_int_value('max_query_results', 10000),
+            "enable_masking": SystemConfig.get_value('enable_masking', 'true').lower() == 'true',
+            "export_max_rows": SystemConfig.get_int_value('export_max_rows', 100000),
+            "tables_per_page": SystemConfig.get_int_value('tables_per_page', 5),
+            "sql_query_page_size": SystemConfig.get_int_value('sql_query_page_size', 20),
+            "max_pagination_pages": SystemConfig.get_int_value('max_pagination_pages', 3),
+            "sidebar_default_width": SystemConfig.get_int_value('sidebar_default_width', 250),
+            "sidebar_min_width": SystemConfig.get_int_value('sidebar_min_width', 100),
+            "sidebar_max_width": SystemConfig.get_int_value('sidebar_max_width', 600),
         }
         return JsonResponse({
             "code": 0,
