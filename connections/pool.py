@@ -14,10 +14,15 @@ _pools_lock = threading.Lock()
 
 
 def _get_pool_key(connection_params):
-    """生成连接池的唯一键"""
-    return f"{connection_params.get('host', 'localhost')}_" \
-           f"{connection_params.get('port', 3306)}_" \
-           f"{connection_params.get('user', '')}"
+    """生成连接池的唯一键（使用哈希避免长度超限）"""
+    import hashlib
+    host = connection_params.get('host', 'localhost')
+    port = connection_params.get('port', 3306)
+    user = connection_params.get('user', '')
+    # 使用主机名+端口+用户的哈希值作为唯一标识
+    key_str = f"{host}:{port}:{user}"
+    key_hash = hashlib.md5(key_str.encode()).hexdigest()[:12]
+    return key_hash
 
 
 def get_connection_pool(connection_params, pool_size=20):
