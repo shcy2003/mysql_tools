@@ -1,12 +1,12 @@
 # MySQL 查询平台
 
-一个现代化的 MySQL 查询平台，支持 SQL 执行、数据脱敏、连接管理和查询历史记录。
+一个功能强大的 MySQL 查询平台，提供 SQL 执行、数据脱敏、连接管理和查询历史记录等完整功能。
 
 ## 功能特性
 
 - 📊 **SQL 查询编辑器** - 提供语法高亮和智能提示的 SQL 编辑器
 - 📈 **查询结果展示** - 表格展示查询结果，支持分页和导出
-- 🎯 **数据脱敏** - 内置多种脱敏规则，保护敏感数据
+- 🎯 **数据脱敏** - 内置多种脱敏规则，保护敏感数据（完全脱敏、部分脱敏、正则匹配）
 - 🔌 **连接管理** - 支持管理多个 MySQL 连接
 - 📜 **查询历史** - 完整的查询审计和历史记录
 - 📱 **响应式 UI** - 适配桌面和移动设备
@@ -18,13 +18,15 @@
 - **前端**: Bootstrap 5 + jQuery
 - **数据库**: SQLite (默认) 或 MySQL
 - **API 文档**: Swagger UI (drf-yasg)
+- **数据连接**: mysql-connector-python, mysqlclient
+- **数据导出**: openpyxl (Excel 导出)
 
 ## 快速开始
 
 ### 1. 环境要求
 
 - Python 3.10+
-- MySQL 5.7+ (可选)
+- MySQL 5.7+ (可选，默认使用 SQLite)
 - pip 包管理器
 
 ### 2. 安装依赖
@@ -95,72 +97,6 @@ python manage.py runserver
 
 http://127.0.0.1:8000/api-doc/
 
-## 使用 Docker 部署
-
-### 1. 使用 Docker Compose
-
-创建 `docker-compose.yml` 文件：
-
-```yaml
-version: '3.8'
-
-services:
-  db:
-    image: mysql:8.0
-    environment:
-      MYSQL_DATABASE: mysql_query_platform
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_PASSWORD: root
-    volumes:
-      - mysql_data:/var/lib/mysql
-    ports:
-      - "3306:3306"
-
-  web:
-    build: .
-    environment:
-      DJANGO_SECRET_KEY: your-secret-key-here
-      DJANGO_DB_ENGINE: django.db.backends.mysql
-      DJANGO_DB_NAME: mysql_query_platform
-      DJANGO_DB_USER: root
-      DJANGO_DB_PASSWORD: root
-      DJANGO_DB_HOST: db
-      DJANGO_DB_PORT: 3306
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-    restart: always
-
-volumes:
-  mysql_data:
-```
-
-启动服务：
-
-```bash
-docker-compose up -d
-```
-
-### 2. 使用 Docker 单独构建
-
-```bash
-# 构建镜像
-docker build -t mysql-query-platform .
-
-# 运行容器（使用外部 MySQL）
-docker run -d -p 8000:8000 \
-  -e DJANGO_SECRET_KEY=your-secret-key \
-  -e DJANGO_DB_ENGINE=django.db.backends.mysql \
-  -e DJANGO_DB_NAME=mysql_query_platform \
-  -e DJANGO_DB_USER=root \
-  -e DJANGO_DB_PASSWORD=password \
-  -e DJANGO_DB_HOST=your-mysql-host \
-  -e DJANGO_DB_PORT=3306 \
-  --name mysql-query-platform \
-  mysql-query-platform
-```
-
 ## 使用说明
 
 ### 1. 添加数据库连接
@@ -182,6 +118,7 @@ docker run -d -p 8000:8000 \
 2. 在 SQL 编辑器中输入查询语句
 3. 点击 "执行" 按钮
 4. 查看查询结果和执行时间
+5. 支持导出查询结果（Excel 格式）
 
 ### 3. 配置脱敏规则
 
@@ -192,6 +129,32 @@ docker run -d -p 8000:8000 \
    - 要脱敏的列名
    - 脱敏类型（完全脱敏、部分脱敏、正则匹配）
    - 脱敏参数
+
+#### 脱敏规则示例
+
+**手机号脱敏**（保留前3位后4位）：
+```json
+{
+  "masking_type": "partial",
+  "masking_params": {"keep_first": 3, "keep_last": 4}
+}
+```
+
+**邮箱脱敏**（保留前2位）：
+```json
+{
+  "masking_type": "regex",
+  "masking_params": {"pattern": "(\\w{2})\\w*(@.*)", "replace": "$1****$2"}
+}
+```
+
+**身份证脱敏**（保留前6位后4位）：
+```json
+{
+  "masking_type": "regex",
+  "masking_params": {"pattern": "(\\d{6})\\d*(\\d{4})", "replace": "$1********$2"}
+}
+```
 
 ### 4. 查看查询历史
 
@@ -241,6 +204,43 @@ server {
 }
 ```
 
+## 项目结构
+
+```
+mysql_query_platform/
+├── mysql_query_platform/          # 项目配置
+├── accounts/                      # 用户管理
+├── connections/                   # 连接管理
+├── queries/                       # 查询管理和API
+├── desensitization/               # 脱敏规则管理
+├── audit/                         # 审计日志
+├── apidoc/                        # API 文档
+├── monitoring/                    # 监控
+├── static/                        # 静态文件
+├── templates/                     # 模板文件
+├── manage.py                      # 管理命令
+├── requirements.txt               # 依赖包
+├── Dockerfile                     # Docker 镜像
+└── docker-compose.yml            # Docker Compose
+```
+
+## 开发命令
+
+```bash
+# 运行开发服务器
+python manage.py runserver
+
+# 运行测试
+python manage.py test
+
+# 数据库迁移
+python manage.py makemigrations
+python manage.py migrate
+
+# 创建管理员用户
+python manage.py createsuperuser
+```
+
 ## 故障排除
 
 ### 1. 数据库连接失败
@@ -260,54 +260,6 @@ server {
 - 优化 SQL 查询语句
 - 增加数据库连接超时设置
 - 检查数据库服务器负载
-
-## 开发
-
-### 1. 项目结构
-
-```
-mysql_query_platform/
-├── mysql_query_platform/          # 项目配置
-├── accounts/                      # 用户管理
-├── connections/                   # 连接管理
-├── queries/                       # 查询管理
-├── desensitization/               # 脱敏规则
-├── audit/                         # 审计日志
-├── apidoc/                        # API 文档
-├── monitoring/                    # 监控
-├── static/                        # 静态文件
-├── templates/                     # 模板文件
-├── manage.py                      # 管理命令
-├── requirements.txt               # 依赖包
-├── Dockerfile                     # Docker 镜像
-├── docker-compose.yml            # Docker Compose
-└── init_mysql.sql                # 数据库初始化脚本
-```
-
-### 2. 开发命令
-
-```bash
-# 运行开发服务器
-python manage.py runserver
-
-# 运行测试
-python manage.py test
-
-# 数据库迁移
-python manage.py makemigrations
-python manage.py migrate
-
-# 创建管理员用户
-python manage.py createsuperuser
-```
-
-## 贡献
-
-1. Fork 项目
-2. 创建功能分支 (git checkout -b feature/AmazingFeature)
-3. 提交更改 (git commit -m 'Add some AmazingFeature')
-4. 推送到分支 (git push origin feature/AmazingFeature)
-5. 打开 Pull Request
 
 ## 许可证
 
