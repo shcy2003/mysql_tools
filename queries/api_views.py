@@ -715,7 +715,7 @@ def api_execute_query(request):
                     user=request.user,
                     action='query',
                     ip_address=request.META.get('REMOTE_ADDR'),
-                    connection=connection,
+                    connection_id=connection.id,
                     execution_time=execution_time
                 )
             except Exception:
