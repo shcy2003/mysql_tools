@@ -327,7 +327,7 @@ def api_query_execute(request):
             limited = true
         
         # 提取列名和行数据
-        columns = result[0].keys() if result else []
+        columns = list(result[0].keys()) if result else []
         rows = []
         for row in result:
             row_data = {}
