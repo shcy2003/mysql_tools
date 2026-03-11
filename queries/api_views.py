@@ -753,6 +753,8 @@ def api_execute_query(request):
             "message": "JSON格式错误"
         }, status=400)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JsonResponse({
             "code": 500,
             "message": f"服务器内部错误: {str(e)}"

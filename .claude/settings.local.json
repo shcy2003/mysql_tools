@@ -61,7 +61,9 @@
       "Bash(ls -la c:/git/mysql_query_platform/*.py)",
       "Bash(ls -la c:/git/mysql_query_platform/*.txt c:/git/mysql_query_platform/*.sqlite3)",
       "Bash(git add .)",
-      "Bash(git commit -m \"项目清理：删除临时文件和未使用的函数\")"
+      "Bash(git commit -m \"项目清理：删除临时文件和未使用的函数\")",
+      "Bash(git add:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }
