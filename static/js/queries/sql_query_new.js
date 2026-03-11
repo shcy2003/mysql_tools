@@ -6,7 +6,7 @@
 let sqlEditor = null;  // CodeMirror编辑器实例
 let currentQueryData = null;
 let currentPage = 1;
-let pageSize = 50;
+let pageSize = 25;
 let currentTableName = null;  // 当前选中的表名
 let currentTableRowCount = null;  // 当前选中表的行数
 let lastExecutedSql = null;  // 最后执行的SQL
@@ -355,10 +355,15 @@ function initPageSizeSelector() {
         $('#pageSizeSelect').val(pageSize);
     }
 
+    // 导出到 window 对象供其他脚本使用
+    window.pageSize = pageSize;
+
     // 保存设置到本地存储
     $('#pageSizeSelect').on('change', function() {
         const selectedSize = parseInt($(this).val());
         localStorage.setItem('pageSize', selectedSize);
+        pageSize = selectedSize;
+        window.pageSize = selectedSize;
     });
 }
 

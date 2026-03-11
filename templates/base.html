@@ -15,19 +15,51 @@
     <link rel="stylesheet" href="{% static 'css/bootstrap-icons.css' %}">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <style>
+        /* Sidebar resizer styles - only show on SQL query page */
+        .sidebar-resizer {
+            display: none;
+        }
+        body.sql-query-page #main-row {
+            position: relative;
+        }
+        body.sql-query-page .sidebar-resizer {
+            display: block;
+            width: 5px;
+            cursor: col-resize;
+            background: transparent;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            z-index: 100;
+            transition: background 0.2s;
+        }
+        body.sql-query-page .sidebar-resizer:hover,
+        body.sql-query-page .sidebar-resizer.resizing {
+            background: #0d6efd;
+        }
+        body.sql-query-page #sidebarMenu {
+            transition: width 0.2s ease;
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     {% include 'navbar.html' %}
 
     <div class="container-fluid">
-        <div class="row">
+        <div class="row" id="main-row">
             {% include 'sidebar.html' %}
 
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 pb-12">
+            <!-- Sidebar Resizer -->
+            <div class="sidebar-resizer" id="sidebar-resizer"></div>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 pb-12 main-content" id="main-content">
+                {% block page_title_block %}
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">{% block page_title %}{% endblock %}</h1>
                 </div>
+                {% endblock %}
 
                 {% block content %}{% endblock %}
             </main>
@@ -489,11 +521,23 @@
             return;
         }
 
-        var sql = 'SELECT * FROM `' + window.selectedDatabase + '`.`' + tableName + '` LIMIT 20';
+        // 设置全局变量，以便 executeQuery 使用正确的 pageSize
+        // pageSize 变量在 sql_query_new.js 中定义，但我们需要确保它是正确的值
+        var pageSize = 25;
+        if (typeof window.pageSize !== 'undefined') {
+            pageSize = window.pageSize;
+        } else {
+            var $pageSizeSelect = $('#pageSizeSelect');
+            if ($pageSizeSelect.length) {
+                pageSize = parseInt($pageSizeSelect.val()) || 25;
+            }
+        }
 
-        // 更新SQL编辑器
+        var sql = 'SELECT * FROM `' + window.selectedDatabase + '`.`' + tableName + '` LIMIT ' + pageSize;
+
+        // 更新SQL编辑器，并自动执行查询
         if (window.updateSqlQueryEditor) {
-            window.updateSqlQueryEditor(sql);
+            window.updateSqlQueryEditor(sql, true);  // 自动执行
         }
     }
 
@@ -591,6 +635,83 @@
             initSidebarConnectionTree();
         }, 100);
     });
+
+    // Sidebar resizer functionality - only on SQL query page
+    (function() {
+        // Only initialize on SQL query page
+        if (!isSqlQueryPage()) return;
+
+        // Add body class for styling
+        document.body.classList.add('sql-query-page');
+
+        const resizer = document.getElementById('sidebar-resizer');
+        const sidebar = document.getElementById('sidebarMenu');
+        const mainContent = document.getElementById('main-content');
+
+        if (!resizer || !sidebar || !mainContent) return;
+
+        // Calculate initial position
+        function updateResizerPosition() {
+            const sidebarRect = sidebar.getBoundingClientRect();
+            resizer.style.left = sidebarRect.width + 'px';
+        }
+
+        // Initial position
+        setTimeout(updateResizerPosition, 200);
+        window.addEventListener('resize', updateResizerPosition);
+
+        let isResizing = false;
+        let startX = 0;
+        let startWidth = 0;
+
+        resizer.addEventListener('mousedown', function(e) {
+            isResizing = true;
+            startX = e.clientX;
+            startWidth = sidebar.offsetWidth;
+            resizer.classList.add('resizing');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!isResizing) return;
+
+            const diff = e.clientX - startX;
+            let newWidth = startWidth + diff;
+
+            // Min and max width constraints
+            newWidth = Math.max(150, Math.min(newWidth, 500));
+
+            // Apply new width to sidebar
+            sidebar.style.width = newWidth + 'px';
+
+            // Update resizer position
+            resizer.style.left = newWidth + 'px';
+
+            // Save to localStorage
+            localStorage.setItem('sidebarWidth', newWidth);
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (isResizing) {
+                isResizing = false;
+                resizer.classList.remove('resizing');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        });
+
+        // Load saved width
+        const savedWidth = localStorage.getItem('sidebarWidth');
+        if (savedWidth) {
+            const width = parseInt(savedWidth);
+            if (width >= 150 && width <= 500) {
+                sidebar.style.width = width + 'px';
+                resizer.style.left = width + 'px';
+            }
+        }
+    })();
     </script>
     {% block extra_js %}{% endblock %}
 </body>

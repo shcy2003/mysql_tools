@@ -3,6 +3,8 @@
 
 {% block title %} - SQL查询(新界面){% endblock %}
 
+{% block page_title_block %}{% endblock %}
+
 {% block extra_css %}
 <!-- CodeMirror CSS for SQL syntax highlighting -->
 <link rel="stylesheet" href="{% static 'js/codemirror/codemirror.min.css' %}">
@@ -10,8 +12,8 @@
 <link rel="stylesheet" href="{% static 'js/codemirror/show-hint.min.css' %}">
 <style>
 .sql-query-container {
-    height: calc(100vh - 180px);
-    min-height: 500px;
+    height: calc(100vh - 20px);
+    min-height: 200px;
     display: flex;
     overflow: hidden;
 }
@@ -560,8 +562,8 @@
                     <div class="ms-3 d-flex align-items-center">
                         <label class="form-label mb-0 me-2 text-muted">每页显示:</label>
                         <select class="form-select form-select-sm" id="pageSizeSelect" style="width: auto;">
-                            <option value="25">25行</option>
-                            <option value="50" selected>50行</option>
+                            <option value="25" selected>25行</option>
+                            <option value="50">50行</option>
                             <option value="100">100行</option>
                             <option value="200">200行</option>
                             <option value="500">500行</option>
