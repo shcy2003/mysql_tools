@@ -754,6 +754,19 @@ def api_execute_query(request):
         }, status=400)
     except Exception as e:
         import traceback
+        import sys
+        # 打印详细的堆栈信息，找出哪个字段包含 set
+        tb = traceback.format_exc()
+        print(f"Exception: {e}")
+        print(f"Columns: {columns}")
+        print(f"Rows sample: {rows[:1] if rows else 'empty'}")
+        # 检查每个字段的类型
+        if rows:
+            for i, row in enumerate(rows[:1]):
+                for k, v in row.items():
+                    if isinstance(v, (set, frozenset)):
+                        print(f"Found set in row {i}, key={k}, value={v}")
+                        break
         traceback.print_exc()
         return JsonResponse({
             "code": 500,
