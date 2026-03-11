@@ -158,6 +158,10 @@ def api_connection_databases(request, connection_id):
             cursor.execute("SHOW DATABASES")
             databases = [row['Database'] for row in cursor.fetchall()]
 
+            # 过滤掉系统数据库
+            system_dbs = ['performance_schema', 'information_schema', 'mysql', 'sys']
+            databases = [db for db in databases if db not in system_dbs]
+
             cursor.close()
             db_connection.close()
             

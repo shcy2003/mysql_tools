@@ -40,6 +40,9 @@ def login_view(request):
                 return redirect('queries:query_list')
             else:
                 messages.error(request, '用户名或密码错误！')
+        else:
+            # 表单验证失败
+            messages.error(request, '用户名或密码错误！')
     else:
         form = LoginForm()
 
