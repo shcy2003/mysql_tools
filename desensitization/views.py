@@ -131,7 +131,11 @@ def masking_rule_edit_view(request, rule_id):
     else:
         form = MaskingRuleForm(instance=rule)
 
-    return render(request, 'desensitization/edit.html', {'form': form, 'rule': rule})
+    return render(request, 'desensitization/edit.html', {
+        'form': form,
+        'rule': rule,
+        'initial_column_names': json.dumps(rule.column_names) if rule.column_names else '[]'
+    })
 
 
 @login_required

@@ -437,27 +437,77 @@
         // 添加列名按钮点击事件
         $('#btn-add-column').on('click', function() {
             console.log('Add column button clicked');
-            const newColumn = $('#new_column_name').val().trim();
-            if (!newColumn) {
+            const inputValue = $('#new_column_name').val().trim();
+            if (!inputValue) {
                 alert('请输入列名');
                 return;
             }
-            // 检查是否已在当前规则中存在
-            if (columnList.indexOf(newColumn) !== -1) {
-                alert('该列名已存在于当前规则中');
+
+            // 支持逗号分隔的多个列名
+            const columnsToAdd = inputValue.split(',').map(c => c.trim()).filter(c => c);
+            const duplicates = [];
+            const existInOther = [];
+            const validColumns = [];
+
+            // 逐个检查列名
+            let processed = 0;
+            if (columnsToAdd.length === 0) {
+                alert('请输入有效的列名');
                 return;
             }
-            // 检查是否已在其他规则中存在
-            checkColumnExists(newColumn).then(function(exists) {
-                if (exists) {
-                    alert('该列名已存在于其他脱敏规则中');
+
+            columnsToAdd.forEach(function(newColumn) {
+                // 检查是否已在当前规则中存在
+                if (columnList.indexOf(newColumn) !== -1) {
+                    duplicates.push(newColumn);
+                    processed++;
+                    checkComplete();
                     return;
                 }
-                columnList.push(newColumn);
-                renderColumns();
-                $('#new_column_name').val('');
-                $('#addColumnModal').modal('hide');
+
+                // 检查是否已在其他规则中存在
+                checkColumnExists(newColumn).then(function(exists) {
+                    if (exists) {
+                        existInOther.push(newColumn);
+                    } else {
+                        validColumns.push(newColumn);
+                    }
+                    processed++;
+                    checkComplete();
+                });
             });
+
+            function checkComplete() {
+                if (processed < columnsToAdd.length) return;
+
+                let errorMsg = [];
+                if (duplicates.length > 0) {
+                    errorMsg.push('列名 ' + duplicates.join(', ') + ' 已存在于当前规则中');
+                }
+                if (existInOther.length > 0) {
+                    errorMsg.push('列名 ' + existInOther.join(', ') + ' 已存在于其他脱敏规则中');
+                }
+
+                if (errorMsg.length > 0 && validColumns.length === 0) {
+                    alert(errorMsg.join('\n'));
+                    return;
+                }
+
+                // 添加有效的列名
+                validColumns.forEach(function(col) {
+                    columnList.push(col);
+                });
+
+                if (validColumns.length > 0) {
+                    renderColumns();
+                    $('#new_column_name').val('');
+                    $('#addColumnModal').modal('hide');
+
+                    if (duplicates.length > 0 || existInOther.length > 0) {
+                        alert('已添加 ' + validColumns.length + ' 个列名，' + (duplicates.length + existInOther.length) + ' 个列名跳过');
+                    }
+                }
+            }
         });
 
         // 表单提交前验证
