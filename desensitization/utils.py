@@ -416,12 +416,18 @@ def _apply_single_rule(rule, value):
             regex = re.compile(pattern)
 
             if replacement:
+                # 兼容两种语法：$1, $2 或 \1, \2
+                # 将 $1 转换为 \1
+                import re
+                replacement_fixed = re.sub(r'\$(\d+)', r'\\\1', replacement)
+
                 # 使用自定义替换
-                return regex.sub(replacement, value_str)
+                return regex.sub(replacement_fixed, value_str)
             else:
                 # 默认替换：用*替换匹配的内容
                 return regex.sub('*', value_str)
-        except:
+        except Exception as e:
+            print(f"正则替换错误: {e}")
             return '*' * len(value_str)
     else:
         return value_str
