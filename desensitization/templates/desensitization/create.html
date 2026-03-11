@@ -192,7 +192,12 @@
                              aria-labelledby="headingFull" data-bs-parent="#maskingTypes">
                             <div class="accordion-body">
                                 <p>将整个字段值替换为相同长度的星号。</p>
-                                <p><strong>示例:</strong> 13812345678 → **********</p>
+                                <p><strong>示例:</strong></p>
+                                <ul>
+                                    <li>13812345678 → ***********</li>
+                                    <li>test@example.com → *************</li>
+                                    <li>张三 → **</li>
+                                </ul>
                                 <p><strong>参数:</strong> 无需参数</p>
                             </div>
                         </div>
@@ -208,7 +213,13 @@
                              aria-labelledby="headingPartial" data-bs-parent="#maskingTypes">
                             <div class="accordion-body">
                                 <p>保留前 N 个字符和后 M 个字符，中间替换为星号。</p>
-                                <p><strong>示例:</strong> 13812345678 → 138*****78</p>
+                                <p><strong>示例:</strong></p>
+                                <ul>
+                                    <li>手机号：<code>{"keep_first":3,"keep_last":4}</code> → 13812345678 → 138****5678</li>
+                                    <li>身份证：<code>{"keep_first":6,"keep_last":4}</code> → 110101199001011234 → 110101********1234</li>
+                                    <li>邮箱：<code>{"keep_first":2,"keep_last":0}</code> → test@example.com → te*******</li>
+                                    <li>姓名：<code>{"keep_first":1,"keep_last":1}</code> → 张三丰 → 张**丰</li>
+                                </ul>
                                 <p><strong>参数:</strong>
                                     <code>{"keep_first":3,"keep_last":4}</code>
                                 </p>
@@ -231,8 +242,26 @@
                         <div id="collapseRegex" class="accordion-collapse collapse"
                              aria-labelledby="headingRegex" data-bs-parent="#maskingTypes">
                             <div class="accordion-body">
-                                <p>使用正则表达式匹配字段值，匹配到的内容替换为星号。</p>
-                                <p><strong>示例:</strong> 13812345678 → 138*****78</p>
+                                <p>使用正则表达式匹配字段值，匹配到的内容替换为星号或自定义格式。</p>
+                                <p><strong>示例:</strong></p>
+                                <ul>
+                                    <li><strong>手机号脱敏：</strong>
+                                        <code>{"pattern": "(\\d{3})\\d{4}(\\d{4})","replace": "$1****$2"}</code>
+                                        <br>原始：13812345678 → 结果：138****5678
+                                    </li>
+                                    <li><strong>邮箱脱敏：</strong>
+                                        <code>{"pattern": "(\\w{2})\\w*(@.*)","replace": "$1****$2"}</code>
+                                        <br>原始：rqwd@qq.com → 结果：rq****@qq.com
+                                    </li>
+                                    <li><strong>身份证脱敏：</strong>
+                                        <code>{"pattern": "(\\d{6})\\d*(\\d{4})","replace": "$1********$2"}</code>
+                                        <br>原始：110101199001011234 → 结果：110101********1234
+                                    </li>
+                                    <li><strong>银行卡号脱敏：</strong>
+                                        <code>{"pattern": "(\\d{4})\\d*(\\d{4})","replace": "$1**********$2"}</code>
+                                        <br>原始：6222021200012345678 → 结果：6222**********5678
+                                    </li>
+                                </ul>
                                 <p><strong>参数:</strong>
                                     <code>{"pattern": "\\d{3}(\\d{4})\\d{4}","replace": "$1"}</code>
                                 </p>
