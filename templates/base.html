@@ -118,8 +118,12 @@
         $.get('/api/connections/' + connectionId + '/databases/', function(data) {
             if (data.code === 0) {
                 var options = '<option value="">请选择数据库...</option>';
+                // 过滤掉系统数据库
+                var systemDBs = ['information_schema', 'performance_schema', 'mysql', 'sys'];
                 data.data.forEach(function(db) {
-                    options += '<option value="' + db + '">' + db + '</option>';
+                    if (systemDBs.indexOf(db) === -1) {
+                        options += '<option value="' + db + '">' + db + '</option>';
+                    }
                 });
                 $select.html(options);
 

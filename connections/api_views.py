@@ -92,7 +92,10 @@ def api_connection_tree(request):
                             # MySQL 返回的列名可能是 Tables_in_dbname 或 Tables_in_{dbname}
                             table_name = table_row.get(table_key) or table_row.get('Tables_in_{}'.format(db_name))
                             if table_name:
-                                db_data['tables'].append(table_name)
+                                # 过滤掉系统表
+                                system_prefixes = ['sys_', 'mysql_', 'innodb_', 'plugin']
+                                if not any(table_name.startswith(p) for p in system_prefixes):
+                                    db_data['tables'].append(table_name)
                     except Exception:
                         pass  # 忽略单个数据库的错误
 
@@ -245,6 +248,10 @@ def api_connection_tables(request, connection_id):
                 table_name = row.get(table_key) or row.get(f"Tables_in_{{{database_name}}}")
                 if table_name:
                     tables.append(table_name)
+
+            # 过滤掉系统表
+            system_tables_prefix = ['sys_', 'mysql_', 'innodb_', 'plugin']
+            tables = [t for t in tables if not any(t.startswith(prefix) for prefix in system_tables_prefix)]
 
             cursor.close()
             db_connection.close()
