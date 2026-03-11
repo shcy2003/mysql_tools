@@ -730,7 +730,7 @@ def api_execute_query(request):
                 for key, value in row.items():
                     if isinstance(value, (set, frozenset)):
                         row[key] = list(value)
-                    elif isinstance(value, datetime):
+                    elif isinstance(value, datetime.datetime) or isinstance(value, datetime.date):
                         row[key] = value.isoformat()
 
             return JsonResponse({
