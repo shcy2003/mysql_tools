@@ -344,9 +344,6 @@ def api_query_execute(request):
         })
     
     except Exception as e:
-        import traceback
-        print(f"API执行查询出错: {str(e)}")
-        print(traceback.format_exc())
         return api_response(code=500, message=f'服务器内部错误: {str(e)}')
 
 
@@ -424,7 +421,4 @@ def api_test_connection(request):
             return api_response(code=400, message=message)
 
     except Exception as e:
-        import traceback
-        print(f"API测试连接出错: {str(e)}")
-        print(traceback.format_exc())
         return api_response(code=500, message=f'测试连接失败: {str(e)}')

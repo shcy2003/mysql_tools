@@ -142,8 +142,6 @@
 <script>
     // 页面加载完成后初始化
     $(document).ready(function() {
-        console.log('Connection edit page script loaded');
-
         // 全局变量
         var connectionTested = false;
 
@@ -156,7 +154,6 @@
 
         // 测试连接函数
         function testConnection() {
-            console.log('Test connection button clicked');
             var btn = $('#btn-test-connection');
             var resultDiv = $('#test-result');
 
@@ -195,7 +192,6 @@
                     xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
                 },
                 success: function(response) {
-                    console.log('Test connection response:', response);
                     if (response.code === 0) {
                         resultDiv.removeClass('error').addClass('success').show();
                         resultDiv.html('<i class="bi bi-check-circle"></i> ' + response.message);

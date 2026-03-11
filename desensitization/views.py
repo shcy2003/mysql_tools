@@ -327,9 +327,6 @@ def api_test_masking_rule(request):
         })
 
     except Exception as e:
-        import traceback
-        print(f"测试脱敏规则出错: {str(e)}")
-        print(traceback.format_exc())
         return JsonResponse({
             'code': 500,
             'message': f'测试失败: {str(e)}',

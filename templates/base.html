@@ -48,34 +48,23 @@
     // 检查是否在SQL查询页面
     function isSqlQueryPage() {
         const sqlEditor = document.getElementById('sqlEditor');
-        console.log('isSqlQueryPage(): sqlEditor element:', sqlEditor);
-        const isFound = sqlEditor !== null;
-        console.log('isSqlQueryPage():', isFound);
-        return isFound;
+        return sqlEditor !== null;
     }
 
     // 初始化侧边栏的数据库连接选择（仅在SQL查询页面）
     function initSidebarConnectionTree() {
-        console.log('=== initSidebarConnectionTree ===');
-        console.log('window.location.pathname:', window.location.pathname);
-        console.log('document.getElementById("sql-query-connection"):', document.getElementById('sql-query-connection'));
-
         const pageIsSqlQuery = isSqlQueryPage();
-        console.log('isSqlQueryPage():', pageIsSqlQuery);
 
         if (!pageIsSqlQuery) {
-            console.log('Not SQL query page, hiding connection tree');
             $('#sql-query-connection').hide();
             $('#sql-query-connection').css('display', 'none');
             return;
         }
 
-        console.log('SQL query page detected, showing connection tree');
         // 使用多种方法确保元素可见
         $('#sql-query-connection').show();
         $('#sql-query-connection').css('display', 'block');
         $('#sql-query-connection').css('visibility', 'visible');
-        console.log('sql-query-connection display property:', $('#sql-query-connection').css('display'));
         loadSidebarConnections();
     }
 
@@ -193,7 +182,6 @@
                 var configs = response.data;
                 tablePageState.tablesPerPage = configs.tables_per_page || 5;
                 tablePageState.maxPaginationPages = configs.max_pagination_pages || 3;
-                console.log('表分页配置加载成功: 每页 ' + tablePageState.tablesPerPage + ' 条，最大 ' + tablePageState.maxPaginationPages + ' 页');
             }
         }).fail(function() {
             console.error('加载系统配置失败，使用默认值');
@@ -352,7 +340,6 @@
     $(document).on('click', '.view-structure', function(e) {
         e.stopPropagation();
         var tableName = $(this).data('table');
-        console.log('点击了表结构按钮:', tableName);
         if (tableName) {
             viewTableStructure(tableName);
         }
@@ -360,9 +347,7 @@
 
     // 查看表结构
     function viewTableStructure(tableName) {
-        console.log('viewTableStructure 函数被调用:', tableName);
         if (!window.selectedConnectionId || !window.selectedDatabase) {
-            console.log('请先选择数据库连接和数据库');
             showNotification('请先选择数据库连接和数据库', 'warning');
             return;
         }
@@ -501,7 +486,6 @@
     // 自动查询表数据
     function autoQueryTableData(tableName) {
         if (!window.selectedConnectionId || !window.selectedDatabase) {
-            console.log('请先选择数据库连接和数据库');
             return;
         }
 
@@ -516,7 +500,6 @@
     // 获取表行数
     function getTableRowCount(tableName) {
         if (!window.selectedConnectionId || !window.selectedDatabase) {
-            console.log('请先选择数据库连接和数据库');
             return;
         }
 
@@ -537,7 +520,7 @@
                 localStorage.setItem(cacheKey, rowCount);
             }
         }).fail(function() {
-            console.log('获取表行数失败');
+            // 获取表行数失败，忽略
         });
     }
 

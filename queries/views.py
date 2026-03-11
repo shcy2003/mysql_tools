@@ -114,10 +114,6 @@ def get_available_connections(user):
 @login_required
 def sql_query_new_view(request):
     """新的 SQL 查询界面（支持连接树和 AJAX 查询）"""
-    import os
-    from django.conf import settings
-    template_path = os.path.join(settings.BASE_DIR, 'templates', 'queries', 'sql_query_new.html')
-    print(f"Loading template from: {template_path}")
     return render(request, 'queries/sql_query_new.html', {})
 
 

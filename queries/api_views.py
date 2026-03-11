@@ -558,9 +558,6 @@ def api_export_excel(request):
             "message": "JSON格式错误"
         }, status=400)
     except Exception as e:
-        import traceback
-        print(f"API导出Excel出错: {str(e)}")
-        print(traceback.format_exc())
         return JsonResponse({
             "code": 500,
             "message": f"服务器内部错误: {str(e)}"

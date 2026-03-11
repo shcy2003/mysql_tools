@@ -68,10 +68,9 @@ function loadSystemConfigs() {
                 $('#pageSizeSelect').val(pageSize);
             }
 
-            console.log('系统配置加载成功:', configs);
         }
     }).fail(function(xhr, status, error) {
-        console.error('加载系统配置失败:', error);
+        // 加载配置失败，使用默认值
     });
 }
 
@@ -89,15 +88,12 @@ $(document).ready(function() {
 
     // 监听侧边栏连接状态变化
     window.updateSqlQueryConnection = function(connectionId) {
-        console.log('SQL查询页面: 连接已更新为', connectionId);
     };
 
     window.updateSqlQueryDatabase = function(database) {
-        console.log('SQL查询页面: 数据库已更新为', database);
     };
 
     window.updateSqlQueryEditor = function(sql, autoExecute) {
-        console.log('SQL查询页面: 更新SQL编辑器内容');
         if (sqlEditor) {
             sqlEditor.setValue(sql);
             // 默认自动执行查询，但可以通过参数禁用

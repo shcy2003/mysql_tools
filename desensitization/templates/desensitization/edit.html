@@ -338,7 +338,6 @@
     }
 
     $(document).ready(function() {
-        console.log('Document ready, initializing...');
         toggleMaskingParams();
 
         // 测试规则功能
@@ -458,7 +457,6 @@
 
         // 添加列名按钮点击事件
         $('#btn-add-column').on('click', function() {
-            console.log('Add column button clicked');
             const inputValue = $('#new_column_name').val().trim();
             if (!inputValue) {
                 alert('请输入列名');

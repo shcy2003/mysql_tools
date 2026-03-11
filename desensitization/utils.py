@@ -333,7 +333,6 @@ def _apply_single_rule(rule, value):
                 # 默认替换：用*替换匹配的内容
                 return regex.sub('*', value_str)
         except Exception as e:
-            print(f"正则替换错误: {e}")
             return '*' * len(value_str)
     else:
         return value_str
