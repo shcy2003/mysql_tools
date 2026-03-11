@@ -199,7 +199,7 @@
                             </button>
                             {% endif %}
                             <button class="btn btn-outline-info btn-sm action-btn test-rule" data-rule-id="{{ rule.id }}" data-rule-name="{{ rule.name }}" title="测试规则">
-                                <i class="bi bi-flask"></i>
+                                <i class="bi bi-play-circle"></i>
                             </button>
                             {% if user.role == 'admin' %}
                             <a href="{% url 'desensitization:masking_rule_edit' rule.id %}" class="btn btn-outline-primary btn-sm action-btn" title="编辑">
@@ -324,7 +324,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="ruleTestModalLabel">
-                    <i class="bi bi-flask me-2"></i>测试脱敏规则
+                    <i class="bi bi-play-circle me-2"></i>测试脱敏规则
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>

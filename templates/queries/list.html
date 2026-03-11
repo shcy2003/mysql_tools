@@ -227,9 +227,6 @@
                     </div>
                     <div class="ms-3 flex-grow-1">
                         <h6 class="mb-1">{{ conn.name }}</h6>
-                        <span class="badge bg-{% if conn.status == 'active' %}success{% else %}secondary{% endif %}">
-                            {{ conn.get_status_display }}
-                        </span>
                     </div>
                 </div>
                 <div class="mb-3">
