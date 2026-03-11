@@ -98,3 +98,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # 使用自定义用户模型
 AUTH_USER_MODEL = 'accounts.User'
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://pma-self.evegdpre.com',
+    'https://evegdpre.com',
+]
