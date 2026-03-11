@@ -5,9 +5,9 @@
 
 {% block extra_css %}
 <!-- CodeMirror CSS for SQL syntax highlighting -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/monokai.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.css">
+<link rel="stylesheet" href="{% static 'js/codemirror/codemirror.min.css' %}">
+<link rel="stylesheet" href="{% static 'js/codemirror/monokai.min.css' %}">
+<link rel="stylesheet" href="{% static 'js/codemirror/show-hint.min.css' %}">
 <style>
 .sql-query-container {
     height: calc(100vh - 180px);
@@ -737,11 +737,11 @@
 
 {% block extra_js %}
 <!-- CodeMirror JS for SQL syntax highlighting -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/sql/sql.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/sql-hint.min.js"></script>
+<script src="{% static 'js/codemirror/codemirror.min.js' %}"></script>
+<script src="{% static 'js/codemirror/sql.min.js' %}"></script>
+<script src="{% static 'js/codemirror/show-hint.min.js' %}"></script>
+<script src="{% static 'js/codemirror/sql-hint.min.js' %}"></script>
 <!-- SQL Formatter -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sql-formatter/3.1.0/sql-formatter.min.js"></script>
+<script src="{% static 'js/sql-formatter.min.js' %}"></script>
 <script src="{% static 'js/queries/sql_query_new.js' %}"></script>
 {% endblock %}

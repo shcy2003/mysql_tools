@@ -11,4 +11,6 @@ urlpatterns = [
     path('api/toggle/<int:rule_id>/', views.api_toggle_rule_status, name='api_toggle_rule_status'),
     path('api/check-column/', views.api_check_column_exists, name='api_check_column_exists'),
     path('api/test-rule/', views.api_test_masking_rule, name='api_test_masking_rule'),
+    path('api/export/', views.api_export_masking_rules, name='api_export_masking_rules'),
+    path('api/import/', views.api_import_masking_rules, name='api_import_masking_rules'),
 ]

@@ -9,6 +9,9 @@ from .models import MaskingRule
 from audit.utils import create_audit_log
 from accounts.views import get_client_ip
 import json
+import csv
+import io
+from django.http import HttpResponse
 
 
 @login_required
@@ -330,5 +333,178 @@ def api_test_masking_rule(request):
         return JsonResponse({
             'code': 500,
             'message': f'测试失败: {str(e)}',
+            'data': {}
+        })
+
+
+@login_required
+def api_export_masking_rules(request):
+    """
+    导出脱敏规则API
+    GET /api/desensitization/export/
+    """
+    if request.user.role != 'admin':
+        return JsonResponse({
+            'code': 403,
+            'message': '您没有权限导出脱敏规则',
+            'data': {}
+        })
+
+    try:
+        rules = MaskingRule.objects.all()
+        export_data = []
+
+        for rule in rules:
+            export_data.append({
+                'name': rule.name,
+                'is_enabled': rule.is_enabled,
+                'column_names': rule.column_names,
+                'masking_type': rule.masking_type,
+                'masking_params': rule.masking_params,
+            })
+
+        # 创建CSV响应
+        output = io.StringIO()
+        if not export_data:
+            # 如果没有数据，只写入表头
+            writer = csv.writer(output)
+            writer.writerow(['name', 'is_enabled', 'column_names', 'masking_type', 'masking_params'])
+        else:
+            # 写入表头和数据
+            fieldnames = ['name', 'is_enabled', 'column_names', 'masking_type', 'masking_params']
+            writer = csv.DictWriter(output, fieldnames=fieldnames)
+            writer.writeheader()
+            for row in export_data:
+                # 将JSON字段转换为字符串
+                row['column_names'] = json.dumps(row['column_names']) if row['column_names'] else '[]'
+                row['masking_params'] = json.dumps(row['masking_params']) if row['masking_params'] else '{}'
+                writer.writerow(row)
+
+        response = HttpResponse(output.getvalue(), content_type='text/csv; charset=utf-8-sig')
+        response['Content-Disposition'] = 'attachment; filename="masking_rules.csv"'
+
+        return response
+
+    except Exception as e:
+        return JsonResponse({
+            'code': 500,
+            'message': f'导出失败: {str(e)}',
+            'data': {}
+        })
+
+
+@login_required
+def api_import_masking_rules(request):
+    """
+    导入脱敏规则API
+    POST /api/desensitization/import/
+    """
+    if request.user.role != 'admin':
+        return JsonResponse({
+            'code': 403,
+            'message': '您没有权限导入脱敏规则',
+            'data': {}
+        })
+
+    try:
+        if 'file' not in request.FILES:
+            return JsonResponse({
+                'code': 400,
+                'message': '请上传文件',
+                'data': {}
+            })
+
+        file = request.FILES['file']
+        if not file.name.endswith('.csv'):
+            return JsonResponse({
+                'code': 400,
+                'message': '请上传 CSV 格式文件',
+                'data': {}
+            })
+
+        # 读取CSV文件
+        decoded_file = file.read().decode('utf-8-sig')
+        input_file = io.StringIO(decoded_file)
+        reader = csv.DictReader(input_file)
+
+        imported_count = 0
+        skipped_count = 0
+        errors = []
+
+        for row_num, row in enumerate(reader, start=2):
+            try:
+                name = row.get('name', '').strip()
+                if not name:
+                    skipped_count += 1
+                    errors.append(f'第{row_num}行: 规则名称不能为空')
+                    continue
+
+                # 解析JSON字段
+                column_names = []
+                masking_params = {}
+
+                try:
+                    column_names = json.loads(row.get('column_names', '[]')) if row.get('column_names') else []
+                except:
+                    pass
+
+                try:
+                    masking_params = json.loads(row.get('masking_params', '{}')) if row.get('masking_params') else {}
+                except:
+                    pass
+
+                is_enabled = row.get('is_enabled', 'True').strip().lower() == 'true'
+                masking_type = row.get('masking_type', 'full').strip()
+
+                # 验证脱敏类型
+                valid_types = ['full', 'partial', 'regex']
+                if masking_type not in valid_types:
+                    masking_type = 'full'
+
+                # 创建规则
+                rule = MaskingRule.objects.create(
+                    name=name,
+                    is_enabled=is_enabled,
+                    column_names=column_names,
+                    masking_type=masking_type,
+                    masking_params=masking_params,
+                    created_by=request.user
+                )
+
+                imported_count += 1
+
+            except Exception as e:
+                skipped_count += 1
+                errors.append(f'第{row_num}行: {str(e)}')
+
+        # 添加审计日志
+        create_audit_log(
+            user=request.user,
+            action='import_masking',
+            ip_address=get_client_ip(request),
+            connection=None
+        )
+
+        message = f'导入成功: {imported_count} 条'
+        if skipped_count > 0:
+            message += f'，跳过: {skipped_count} 条'
+        if errors:
+            message += f'，错误: {"; ".join(errors[:5])}'
+            if len(errors) > 5:
+                message += f'... 等{len(errors)}个错误'
+
+        return JsonResponse({
+            'code': 0,
+            'message': message,
+            'data': {
+                'imported': imported_count,
+                'skipped': skipped_count
+            }
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'code': 500,
+            'message': f'导入失败: {str(e)}',
             'data': {}
         })
