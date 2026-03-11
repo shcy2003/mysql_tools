@@ -53,7 +53,15 @@
       "Bash(venvScriptsactivate)",
       "Bash(source venv/Scripts/activate)",
       "Bash(ls -la venv/ venv/*/)",
-      "Bash(source venv/bin/activate)"
+      "Bash(source venv/bin/activate)",
+      "Bash(git commit -m \"添加脱敏规则测试功能:*)",
+      "Bash(git add desensitization/utils.py)",
+      "Bash(git commit -m \"修复正则替换语法支持问题:*)",
+      "Bash(git commit -m \"修复脱敏规则正则替换捕获组问题:*)",
+      "Bash(ls -la c:/git/mysql_query_platform/*.py)",
+      "Bash(ls -la c:/git/mysql_query_platform/*.txt c:/git/mysql_query_platform/*.sqlite3)",
+      "Bash(git add .)",
+      "Bash(git commit -m \"项目清理：删除临时文件和未使用的函数\")"
     ]
   }
 }
