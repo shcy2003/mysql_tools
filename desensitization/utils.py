@@ -409,7 +409,8 @@ def _apply_single_rule(rule, value):
     elif rule.masking_type == 'regex':
         params = rule.masking_params or {}
         pattern = params.get('pattern', '')
-        replacement = params.get('replacement', '')
+        # 同时支持 'replace' 和 'replacement' 两个参数名
+        replacement = params.get('replace') or params.get('replacement', '')
 
         try:
             regex = re.compile(pattern)

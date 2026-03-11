@@ -255,32 +255,60 @@ def api_test_masking_rule(request):
     测试脱敏规则API
     POST /api/desensitization/test-rule/
 
-    请求体: {"rule_id": 1, "test_value": "13812345678"}
+    支持测试已保存的规则或未保存的临时规则:
+    请求体1（已保存规则）: {"rule_id": 1, "test_value": "13812345678"}
+    请求体2（临时规则）: {"rule": {"masking_type": "partial", "masking_params": {"keep_first": 3, "keep_last": 4}}, "test_value": "13812345678"}
     返回: {"code": 0, "message": "success", "data": {"original": "13812345678", "masked": "138****5678"}}
     """
     try:
         data = json.loads(request.body)
-        rule_id = data.get('rule_id')
         test_value = data.get('test_value', '')
 
-        if not rule_id:
+        if not test_value:
             return JsonResponse({
                 'code': 400,
-                'message': '缺少规则ID',
+                'message': '缺少测试值',
                 'data': {}
             })
 
-        try:
-            rule = MaskingRule.objects.get(id=rule_id)
-        except MaskingRule.DoesNotExist:
-            return JsonResponse({
-                'code': 404,
-                'message': '规则不存在',
-                'data': {}
-            })
+        # 情况1: 测试已保存的规则
+        rule_id = data.get('rule_id')
+        if rule_id:
+            try:
+                rule = MaskingRule.objects.get(id=rule_id)
+            except MaskingRule.DoesNotExist:
+                return JsonResponse({
+                    'code': 404,
+                    'message': '规则不存在',
+                    'data': {}
+                })
 
-        from desensitization.utils import _apply_single_rule
-        masked_value = _apply_single_rule(rule, test_value)
+            from desensitization.utils import _apply_single_rule
+            masked_value = _apply_single_rule(rule, test_value)
+
+        else:
+            # 情况2: 测试临时规则（未保存到数据库）
+            rule_data = data.get('rule')
+            if not rule_data or not rule_data.get('masking_type'):
+                return JsonResponse({
+                    'code': 400,
+                    'message': '缺少规则配置',
+                    'data': {}
+                })
+
+            # 创建临时规则对象
+            class TemporaryRule:
+                def __init__(self, masking_type, masking_params):
+                    self.masking_type = masking_type
+                    self.masking_params = masking_params or {}
+
+            temp_rule = TemporaryRule(
+                rule_data.get('masking_type'),
+                rule_data.get('masking_params')
+            )
+
+            from desensitization.utils import _apply_single_rule
+            masked_value = _apply_single_rule(temp_rule, test_value)
 
         return JsonResponse({
             'code': 0,
@@ -292,6 +320,9 @@ def api_test_masking_rule(request):
         })
 
     except Exception as e:
+        import traceback
+        print(f"测试脱敏规则出错: {str(e)}")
+        print(traceback.format_exc())
         return JsonResponse({
             'code': 500,
             'message': f'测试失败: {str(e)}',

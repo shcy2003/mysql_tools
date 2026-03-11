@@ -104,6 +104,35 @@
                         </div>
                     </div>
 
+                    <!-- 测试规则区域 -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="card bg-light border-2 border-dashed">
+                                <div class="card-body">
+                                    <h6 class="card-title text-muted mb-3">
+                                        <i class="bi bi-flask"></i> 规则测试
+                                    </h6>
+                                    <div class="mb-3">
+                                        <label for="test_input" class="form-label fw-bold">测试输入值</label>
+                                        <input type="text" class="form-control" id="test_input" placeholder="请输入要测试的值">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="test_output" class="form-label fw-bold">脱敏后值</label>
+                                        <input type="text" class="form-control" id="test_output" readonly placeholder="测试结果将显示在这里">
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-outline-info" id="btn-test-rule">
+                                            <i class="bi bi-play"></i> 测试规则
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" id="btn-clear-test">
+                                            <i class="bi bi-x"></i> 清空
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="row mb-3">
                         <div class="col-md-12">
                             <button type="submit" class="btn btn-primary btn-lg" id="btn-save">
@@ -274,6 +303,76 @@
     $(document).ready(function() {
         console.log('Document ready, initializing...');
         toggleMaskingParams();
+
+        // 测试规则功能
+        $('#btn-test-rule').on('click', function() {
+            const testValue = $('#test_input').val().trim();
+            if (!testValue) {
+                alert('请输入要测试的值');
+                $('#test_input').focus();
+                return;
+            }
+
+            const maskingType = $('#masking_type').val();
+            let maskingParams = {};
+            try {
+                const paramsStr = $('#masking_params').val().trim();
+                if (paramsStr) {
+                    maskingParams = JSON.parse(paramsStr);
+                }
+            } catch (e) {
+                alert('脱敏参数格式错误');
+                return;
+            }
+
+            const btn = $(this);
+            const originalHtml = btn.html();
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span> 测试中');
+
+            $.ajax({
+                url: "{% url 'desensitization:api_test_masking_rule' %}",
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    'rule': {
+                        'masking_type': maskingType,
+                        'masking_params': maskingParams
+                    },
+                    'test_value': testValue
+                }),
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+                },
+                success: function(response) {
+                    if (response.code === 0) {
+                        $('#test_output').val(response.data.masked);
+                    } else {
+                        alert(response.message || '测试失败');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('测试规则失败:', status, error);
+                    alert('测试失败，请重试');
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html(originalHtml);
+                }
+            });
+        });
+
+        // 清空测试功能
+        $('#btn-clear-test').on('click', function() {
+            $('#test_input').val('');
+            $('#test_output').val('');
+            $('#test_input').focus();
+        });
+
+        // 测试输入框回车键事件
+        $('#test_input').on('keypress', function(e) {
+            if (e.which === 13) {
+                $('#btn-test-rule').click();
+            }
+        });
 
         // 检查列名是否在其他规则中已存在
         function checkColumnExists(columnName) {
