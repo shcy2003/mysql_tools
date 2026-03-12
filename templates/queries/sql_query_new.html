@@ -124,19 +124,12 @@
     flex-shrink: 0;
 }
 .results-section {
-    flex: 1;
-    overflow: auto;
     padding: 15px;
     background: #f8f9fa;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
+    overflow-y: auto;
 }
 
 .results-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
     background: #fff;
     border-radius: 4px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -156,7 +149,7 @@
 
 /* CodeMirror编辑器样式 */
 .sql-textarea-wrapper .CodeMirror {
-    height: 300px !important;
+    height: 200px !important;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 14px;
     line-height: 1.5;
@@ -247,6 +240,8 @@
 }
 .data-table-wrapper {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 50vh;
 }
 .data-table {
     width: 100%;
@@ -370,10 +365,10 @@
 }
 
 .fields-panel {
-    width: 280px;
+    width: 260px;
+    min-width: 200px;
+    max-width: 350px;
     flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
 }
 
 .fields-panel-toggle {
@@ -405,7 +400,7 @@
 
 .fields-panel-body {
     padding: 10px;
-    max-height: 500px;
+    max-height: 750px;
     overflow-y: auto;
 }
 
@@ -519,48 +514,42 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <!-- Main Content Area -->
-            <div class="main-content-area">
-                <!-- Fields Panel Toggle -->
-                <div class="d-flex justify-content-end mb-2">
-                    <button class="btn btn-sm btn-outline-secondary fields-panel-toggle" id="toggleFieldsPanel">
-                        <i class="bi bi-list-columns"></i> 字段列表
-                    </button>
-                </div>
+<div class="container-fluid p-0" style="height: calc(100vh - 120px); overflow: hidden;">
+    <!-- Header with toggle button -->
+    <div class="d-flex justify-content-between align-items-center mb-2" style="flex-shrink: 0;">
+        <button class="btn btn-sm btn-outline-secondary fields-panel-toggle" id="toggleFieldsPanel">
+            <i class="bi bi-list-columns"></i> 字段列表
+        </button>
+    </div>
 
-                <div class="fields-panel-wrapper">
-                    <!-- Editor and Results -->
-                    <div class="editor-and-results">
-                        <!-- SQL Editor Section -->
-                        <div class="sql-editor-section">
-                <div class="mb-2">
-                    <label class="form-label fw-bold">
+    <div class="row align-items-start" style="height: 100%; overflow: hidden;">
+        <!-- Editor and Results Section -->
+        <div class="col" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; min-width: 0;">
+            <div class="sql-editor-section mb-2" style="flex-shrink: 0;">
+                <div class="mb-1">
+                    <label class="form-label fw-bold mb-0">
                         <i class="bi bi-code-square"></i> SQL编辑器
                     </label>
-                    <small class="text-muted ms-2">支持 SELECT 或 SHOW 查询，带语法高亮</small>
                 </div>
                 <div class="sql-textarea-wrapper">
                     <textarea class="sql-textarea" id="sqlEditor" placeholder="输入SQL查询...
 示例: SELECT * FROM users WHERE status = 'active' LIMIT 10"></textarea>
                 </div>
-                <div class="action-buttons">
-                    <button type="button" class="btn btn-primary" id="executeBtn">
+                <div class="action-buttons mt-2">
+                    <button type="button" class="btn btn-primary btn-sm" id="executeBtn">
                         <i class="bi bi-play-fill"></i> 执行
                     </button>
-                    <button class="btn btn-outline-warning" id="formatBtn" title="格式化SQL">
+                    <button class="btn btn-outline-warning btn-sm" id="formatBtn" title="格式化SQL">
                         <i class="bi bi-code-slash"></i> 格式化
                     </button>
-                    <button class="btn btn-outline-success" id="saveBtn" title="保存查询">
+                    <button class="btn btn-outline-success btn-sm" id="saveBtn" title="保存查询">
                         <i class="bi bi-bookmark"></i> 保存
                     </button>
-                    <button type="button" class="btn btn-outline-info" id="viewSavedBtn" data-bs-toggle="modal" data-bs-target="#savedQueriesModal">
+                    <button type="button" class="btn btn-outline-info btn-sm" id="viewSavedBtn" data-bs-toggle="modal" data-bs-target="#savedQueriesModal">
                         <i class="bi bi-list"></i> 已保存
                     </button>
-                    <div class="ms-3 d-flex align-items-center">
-                        <label class="form-label mb-0 me-2 text-muted">每页显示:</label>
+                    <div class="ms-2 d-inline-flex align-items-center">
+                        <label class="form-label mb-0 me-2 text-muted small">每页显示:</label>
                         <select class="form-select form-select-sm" id="pageSizeSelect" style="width: auto;">
                             <option value="25" selected>25行</option>
                             <option value="50">50行</option>
@@ -574,7 +563,7 @@
             </div>
 
             <!-- Results Section -->
-            <div class="results-section">
+            <div class="results-section" style="flex: 1; overflow-y: auto; min-height: 0;">
                 <div class="results-container" id="resultsContainer">
                     <div class="empty-state" id="emptyState">
                         <div class="empty-state-icon">
@@ -619,18 +608,20 @@
         </div>
 
         <!-- Fields Panel -->
-        <div class="fields-panel" id="fieldsPanel" style="display: none;">
-            <div class="fields-panel-card">
-                <div class="fields-panel-header">
-                    <h6><i class="bi bi-columns"></i> <span id="currentTableName">未选择表</span></h6>
-                </div>
-                <div class="fields-panel-body">
-                    <div id="fieldsListContainer">
-                        <div class="fields-empty">
-                            <div class="icon">
-                                <i class="bi bi-database"></i>
+        <div class="col-auto align-self-start">
+            <div class="fields-panel" id="fieldsPanel" style="display: none;">
+                <div class="fields-panel-card">
+                    <div class="fields-panel-header">
+                        <h6><i class="bi bi-columns"></i> <span id="currentTableName">未选择表</span></h6>
+                    </div>
+                    <div class="fields-panel-body">
+                        <div id="fieldsListContainer">
+                            <div class="fields-empty">
+                                <div class="icon">
+                                    <i class="bi bi-database"></i>
+                                </div>
+                                <p>在侧边栏选择数据表以查看字段</p>
                             </div>
-                            <p>在侧边栏选择数据表以查看字段</p>
                         </div>
                     </div>
                 </div>

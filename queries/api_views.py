@@ -599,7 +599,7 @@ def api_execute_query(request):
         sql = data.get('sql', '').strip()
         database = data.get('database', None)
         page = data.get('page', 1)
-        page_size = data.get('page_size', 20)
+        page_size = data.get('page_size', 25)
 
         # 验证必需参数
         if not connection_id:

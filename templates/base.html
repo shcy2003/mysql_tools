@@ -15,46 +15,19 @@
     <link rel="stylesheet" href="{% static 'css/bootstrap-icons.css' %}">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    <style>
-        /* Sidebar resizer styles - only show on SQL query page */
-        .sidebar-resizer {
-            display: none;
-        }
-        body.sql-query-page #main-row {
-            position: relative;
-        }
-        body.sql-query-page .sidebar-resizer {
-            display: block;
-            width: 5px;
-            cursor: col-resize;
-            background: transparent;
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            z-index: 100;
-            transition: background 0.2s;
-        }
-        body.sql-query-page .sidebar-resizer:hover,
-        body.sql-query-page .sidebar-resizer.resizing {
-            background: #0d6efd;
-        }
-        body.sql-query-page #sidebarMenu {
-            transition: width 0.2s ease;
-        }
-    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     {% include 'navbar.html' %}
 
-    <div class="container-fluid">
-        <div class="row" id="main-row">
+    <div class="container-fluid" style="overflow: hidden; height: 100vh;">
+        <div class="d-flex" id="main-row" style="height: 100%;">
             {% include 'sidebar.html' %}
 
             <!-- Sidebar Resizer -->
-            <div class="sidebar-resizer" id="sidebar-resizer"></div>
+            <div id="sidebar-resizer" style="width: 5px; cursor: col-resize; background: transparent; flex-shrink: 0; z-index: 1000;"></div>
 
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 pb-12 main-content" id="main-content">
+            <main class="flex-grow-1 px-md-4 pb-12 main-content" id="main-content" style="overflow: hidden; min-width: 0;">
                 {% block page_title_block %}
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">{% block page_title %}{% endblock %}</h1>
@@ -636,39 +609,36 @@
         }, 100);
     });
 
-    // Sidebar resizer functionality - only on SQL query page
+    </script>
+    {% block extra_js %}{% endblock %}
+
+    <!-- Sidebar Resizer Script -->
+    <script>
     (function() {
-        // Only initialize on SQL query page
-        if (!isSqlQueryPage()) return;
-
-        // Add body class for styling
-        document.body.classList.add('sql-query-page');
-
         const resizer = document.getElementById('sidebar-resizer');
         const sidebar = document.getElementById('sidebarMenu');
-        const mainContent = document.getElementById('main-content');
 
-        if (!resizer || !sidebar || !mainContent) return;
-
-        // Calculate initial position
-        function updateResizerPosition() {
-            const sidebarRect = sidebar.getBoundingClientRect();
-            resizer.style.left = sidebarRect.width + 'px';
-        }
-
-        // Initial position
-        setTimeout(updateResizerPosition, 200);
-        window.addEventListener('resize', updateResizerPosition);
+        if (!resizer || !sidebar) return;
 
         let isResizing = false;
         let startX = 0;
         let startWidth = 0;
 
+        // Add hover effect
+        resizer.addEventListener('mouseenter', function() {
+            resizer.style.background = '#0d6efd';
+        });
+        resizer.addEventListener('mouseleave', function() {
+            if (!isResizing) {
+                resizer.style.background = 'transparent';
+            }
+        });
+
         resizer.addEventListener('mousedown', function(e) {
             isResizing = true;
             startX = e.clientX;
             startWidth = sidebar.offsetWidth;
-            resizer.classList.add('resizing');
+            resizer.style.background = '#0d6efd';
             document.body.style.cursor = 'col-resize';
             document.body.style.userSelect = 'none';
             e.preventDefault();
@@ -681,24 +651,21 @@
             let newWidth = startWidth + diff;
 
             // Min and max width constraints
-            newWidth = Math.max(150, Math.min(newWidth, 500));
+            newWidth = Math.max(150, Math.min(newWidth, 400));
 
             // Apply new width to sidebar
             sidebar.style.width = newWidth + 'px';
-
-            // Update resizer position
-            resizer.style.left = newWidth + 'px';
-
-            // Save to localStorage
-            localStorage.setItem('sidebarWidth', newWidth);
+            sidebar.style.flex = '0 0 ' + newWidth + 'px';
         });
 
         document.addEventListener('mouseup', function() {
             if (isResizing) {
                 isResizing = false;
-                resizer.classList.remove('resizing');
+                resizer.style.background = 'transparent';
                 document.body.style.cursor = '';
                 document.body.style.userSelect = '';
+                // Save width to localStorage
+                localStorage.setItem('sidebarWidth', sidebar.offsetWidth);
             }
         });
 
@@ -706,14 +673,13 @@
         const savedWidth = localStorage.getItem('sidebarWidth');
         if (savedWidth) {
             const width = parseInt(savedWidth);
-            if (width >= 150 && width <= 500) {
+            if (width >= 150 && width <= 400) {
                 sidebar.style.width = width + 'px';
-                resizer.style.left = width + 'px';
+                sidebar.style.flex = '0 0 ' + width + 'px';
             }
         }
     })();
     </script>
-    {% block extra_js %}{% endblock %}
 </body>
 </html>
 
