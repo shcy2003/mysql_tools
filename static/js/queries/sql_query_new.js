@@ -1129,14 +1129,23 @@ function initEditorResizer() {
     let startY = 0;
     let startEditorHeight = 0;
 
-    // 加载保存的高度
+    // 加载保存的高度，如果高度太小则使用默认值300px（约12行）
     const savedHeight = localStorage.getItem('sqlEditorHeight');
+    const minHeight = 450; // 默认12行高度
     if (savedHeight) {
         const height = parseInt(savedHeight);
-        if (height > 80 && height < container.offsetHeight - 100) {
+        if (height >= minHeight && container.offsetHeight > height + 100) {
             editorSection.style.height = height + 'px';
             editorSection.style.flex = 'none';
+        } else {
+            // 高度太小，使用默认高度
+            editorSection.style.height = minHeight + 'px';
+            editorSection.style.flex = 'none';
         }
+    } else {
+        // 没有保存的高度，使用默认高度
+        editorSection.style.height = minHeight + 'px';
+        editorSection.style.flex = 'none';
     }
 
     resizer.addEventListener('mousedown', function(e) {
@@ -1192,10 +1201,15 @@ function showFieldsPanel() {
     const panel = $('#fieldsPanel');
     const panelCol = $('#fieldsPanelCol');
     const mainEditorCol = $('#mainEditorCol');
+    const container = $('#sqlQueryContainer');
+
     panelCol.show();
     panel.show();
-    // 设置主编辑区域最大宽度，减去字段列表宽度260px
-    mainEditorCol.css('max-width', 'calc(100% - 260px)');
+
+    // 获取容器宽度，设置主编辑区域固定宽度
+    const containerWidth = container.width();
+    mainEditorCol.css('width', (containerWidth - 260) + 'px');
+
     fieldsPanelVisible = true;
 }
 
@@ -1206,8 +1220,8 @@ function hideFieldsPanel() {
     const mainEditorCol = $('#mainEditorCol');
     panel.hide();
     panelCol.hide();
-    // 恢复主编辑区域最大宽度
-    mainEditorCol.css('max-width', '100%');
+    // 恢复主编辑区域宽度为 auto
+    mainEditorCol.css('width', 'auto');
     fieldsPanelVisible = false;
 }
 

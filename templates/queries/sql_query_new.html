@@ -171,7 +171,7 @@
 .results-section {
     padding: 15px;
     background: #f8f9fa;
-    overflow-y: auto;
+    overflow-y: visible;
     flex: 1;
     min-height: 0;
 }
@@ -191,7 +191,7 @@
     border: 1px solid #ced4da;
     border-radius: 4px;
     overflow: hidden;
-    min-height: 100px;
+    min-height: 450px;
 }
 
 /* CodeMirror编辑器样式 */
@@ -287,8 +287,8 @@
 }
 .data-table-wrapper {
     overflow-x: auto;
-    overflow-y: auto;
-    max-height: 50vh;
+    overflow-y: visible;
+    width: 100%;
     max-width: 100%;
     box-sizing: border-box;
 }
@@ -574,10 +574,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid p-0" style="height: calc(100vh - 70px - 80px - 30px); overflow: hidden; max-width: 100vw;">
-    <div class="row g-0" style="height: 100%;">
+<div class="container-fluid p-0" id="sqlQueryContainer">
+    <div class="row g-0">
         <!-- Editor and Results Section -->
-        <div class="col" id="mainEditorCol" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; min-width: 0; max-width: 100%;">
+        <div class="col" id="mainEditorCol" style="display: flex; flex-direction: column; min-width: 0;">
             <div class="sql-editor-section" id="sqlEditorSection" style="flex-shrink: 0;">
                 <div class="mb-1">
                     <label class="form-label fw-bold mb-0">
@@ -619,7 +619,7 @@
             <div id="editorResizer" class="editor-resizer"></div>
 
             <!-- Results Section -->
-            <div class="results-section" id="resultsSection" style="flex: 1; overflow-y: auto; min-height: 0;">
+            <div class="results-section" id="resultsSection" style="flex: 1;">
                 <div class="results-container" id="resultsContainer">
                     <div class="empty-state" id="emptyState">
                         <div class="empty-state-icon">
