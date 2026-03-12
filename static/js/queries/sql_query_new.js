@@ -256,6 +256,9 @@ function handleSortClick(column) {
     // 修改SQL添加ORDER BY，使用原始SQL
     let sql = (originalSql || lastExecutedSql).trim();
 
+    // 移除末尾的分号
+    sql = sql.replace(/;$/, '');
+
     // 移除现有的ORDER BY子句（更全面的正则，支持反引号和点号）
     sql = sql.replace(/ORDER\s+BY\s+`?[\w.`\[\]]+`?(\s+(ASC|DESC))?/gi, '');
 
@@ -528,9 +531,10 @@ function executeQuery(isSortQuery = false) {
 
     currentPage = 1;
     currentQueryData = null;
-    // 保存原始SQL（不含ORDER BY）
-    if (!sql.includes('ORDER BY')) {
-        originalSql = sql;
+    // 保存原始SQL（不含ORDER BY），去掉末尾分号
+    const cleanSql = sql.replace(/;$/, '').trim();
+    if (!cleanSql.includes('ORDER BY')) {
+        originalSql = cleanSql;
     }
     lastExecutedSql = sql;  // 保存最后执行的SQL
     showLoadingOverlay();
