@@ -6,28 +6,35 @@
 
 {% block extra_css %}
 <style>
+    .compact-form .mb-3 {
+        margin-bottom: 0.75rem !important;
+    }
     .column-tag {
         display: inline-flex;
         align-items: center;
-        padding: 6px 12px;
-        margin: 4px;
+        padding: 4px 10px;
+        margin: 2px;
         background: #e9ecef;
-        border-radius: 20px;
-        font-size: 14px;
+        border-radius: 15px;
+        font-size: 13px;
     }
     .column-tag .btn-close {
-        margin-left: 8px;
-        font-size: 10px;
+        margin-left: 6px;
+        font-size: 9px;
     }
     .column-list {
-        min-height: 50px;
-        padding: 10px;
-        border: 2px dashed #dee2e6;
-        border-radius: 8px;
+        min-height: 36px;
+        padding: 8px;
+        border: 1px dashed #dee2e6;
+        border-radius: 6px;
     }
     .column-list.has-items {
         border-style: solid;
         background: #f8f9fa;
+    }
+    .form-label {
+        margin-bottom: 0.25rem;
+        font-size: 0.875rem;
     }
 </style>
 {% endblock %}
@@ -41,7 +48,7 @@
                     <i class="bi bi-plus-circle"></i> 创建脱敏规则（全局配置）
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="card-body compact-form py-3">
                 {% if messages %}
                     {% for message in messages %}
                         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -99,34 +106,37 @@
                     <div class="row mb-3" id="masking-params-container">
                         <div class="col-md-12">
                             <label for="masking_params" class="form-label">脱敏参数 (JSON)</label>
-                            <textarea class="form-control" id="masking_params" name="masking_params" rows="3"
+                            <textarea class="form-control" id="masking_params" name="masking_params" rows="2"
                                       placeholder='{"keep_first":3,"keep_last":4}'></textarea>
                         </div>
                     </div>
 
                     <!-- 测试规则区域 -->
-                    <div class="row mb-3">
+                    <div class="row mb-2">
                         <div class="col-md-12">
-                            <div class="card bg-light border-2 border-dashed">
-                                <div class="card-body">
-                                    <h6 class="card-title text-muted mb-3">
-                                        <i class="bi bi-play-circle"></i> 规则测试
-                                    </h6>
-                                    <div class="mb-3">
-                                        <label for="test_input" class="form-label fw-bold">测试输入值</label>
-                                        <input type="text" class="form-control" id="test_input" placeholder="请输入要测试的值">
+                            <div class="card bg-light border rounded">
+                                <div class="card-body py-2">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <i class="bi bi-play-circle text-muted"></i>
+                                        <span class="text-muted small">规则测试</span>
                                     </div>
-                                    <div class="mb-3">
-                                        <label for="test_output" class="form-label fw-bold">脱敏后值</label>
-                                        <input type="text" class="form-control" id="test_output" readonly placeholder="测试结果将显示在这里">
-                                    </div>
-                                    <div class="d-flex gap-2">
-                                        <button type="button" class="btn btn-outline-info" id="btn-test-rule">
-                                            <i class="bi bi-play"></i> 测试规则
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary" id="btn-clear-test">
-                                            <i class="bi bi-x"></i> 清空
-                                        </button>
+                                    <div class="row g-2 align-items-center">
+                                        <div class="col-md-5">
+                                            <input type="text" class="form-control form-control-sm" id="test_input" placeholder="测试输入值">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <input type="text" class="form-control form-control-sm" id="test_output" readonly placeholder="脱敏后值" style="background: #e9ecef;">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="d-flex gap-1">
+                                                <button type="button" class="btn btn-info btn-sm" id="btn-test-rule">
+                                                    <i class="bi bi-play"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-test">
+                                                    <i class="bi bi-x"></i>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -135,10 +145,10 @@
 
                     <div class="row mb-3">
                         <div class="col-md-12">
-                            <button type="submit" class="btn btn-primary btn-lg" id="btn-save">
+                            <button type="submit" class="btn btn-primary" id="btn-save">
                                 <i class="bi bi-save"></i> 保存规则
                             </button>
-                            <a href="{% url 'desensitization:masking_rule_list' %}" class="btn btn-secondary btn-lg">
+                            <a href="{% url 'desensitization:masking_rule_list' %}" class="btn btn-secondary">
                                 <i class="bi bi-arrow-left"></i> 取消
                             </a>
                         </div>
