@@ -617,9 +617,8 @@ function renderResults(data) {
         tableHtml += `<tr><td colspan="${columns.length + 1}" class="text-center text-muted py-4">暂无数据</td></tr>`;
     } else {
         rows.forEach(function(row, index) {
-            const rowData = encodeURIComponent(JSON.stringify(row));
             tableHtml += '<tr>';
-            tableHtml += `<td><button type="button" class="btn btn-sm btn-outline-secondary btn-view-row" data-row='${rowData}' title="查看详情"><i class="bi bi-card-text"></i></button></td>`;
+            tableHtml += `<td><button type="button" class="btn btn-sm btn-outline-secondary btn-view-row" data-index="${index}" title="查看详情"><i class="bi bi-card-text"></i></button></td>`;
             columns.forEach(function(col) {
                 const value = row[col];
                 const displayValue = value === null || value === undefined
@@ -636,7 +635,8 @@ function renderResults(data) {
 
     // 绑定查看详情按钮事件
     $('.btn-view-row').on('click', function() {
-        const rowData = JSON.parse(decodeURIComponent($(this).data('row')));
+        const index = $(this).data('index');
+        const rowData = currentQueryData.rows[index];
         showRowDetailModal(rowData);
     });
 
