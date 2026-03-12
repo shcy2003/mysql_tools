@@ -10,6 +10,11 @@ let pageSize = 25;
 let currentTableName = null;  // 当前选中的表名
 let currentTableRowCount = null;  // 当前选中表的行数
 let lastExecutedSql = null;  // 最后执行的SQL
+let originalSql = null;  // 原始SQL（不带ORDER BY）
+
+// 排序状态
+let sortColumn = null;  // 排序字段
+let sortOrder = 'asc';  // 排序方式 asc 或 desc
 
 // 字段列表状态
 let fieldsList = [];
@@ -213,6 +218,64 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// 检测主键列
+function detectPrimaryKey(columns) {
+    const primaryKeyNames = ['id', 'pk', 'key', 'primary', 'no', 'code', 'sn', 'uuid'];
+    for (const col of columns) {
+        const colLower = col.toLowerCase();
+        for (const pk of primaryKeyNames) {
+            if (colLower === pk || colLower.endsWith('_' + pk)) {
+                return col;
+            }
+        }
+    }
+    return null;
+}
+
+// 排序点击事件处理 - 通过修改SQL并重新执行来实现服务器端排序
+function handleSortClick(column) {
+    if (!lastExecutedSql) return;
+
+    // 检测主键列
+    const primaryKey = detectPrimaryKey(currentQueryData.columns || []);
+    if (!primaryKey) {
+        showNotification('未找到主键列，无法排序', 'warning');
+        return;
+    }
+
+    // 切换排序方向
+    if (sortColumn === column) {
+        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortColumn = column;
+        sortOrder = 'desc';
+    }
+
+    // 修改SQL添加ORDER BY，使用原始SQL
+    let sql = (originalSql || lastExecutedSql).trim();
+
+    // 移除现有的ORDER BY子句（更全面的正则，支持反引号和点号）
+    sql = sql.replace(/ORDER\s+BY\s+`?[\w.`\[\]]+`?(\s+(ASC|DESC))?/gi, '');
+
+    // 移除末尾的LIMIT（如果有的话，保留LIMIT但放到ORDER BY后面）
+    let limitClause = '';
+    const limitMatch = sql.match(/LIMIT\s+\d+/i);
+    if (limitMatch) {
+        sql = sql.replace(limitMatch[0], '');
+        limitClause = ' ' + limitMatch[0];
+    }
+
+    // 清理多余的空白
+    sql = sql.trim();
+
+    // 添加ORDER BY子句
+    const orderByClause = ` ORDER BY \`${column}\` ${sortOrder.toUpperCase()}${limitClause}`;
+
+    // 重新设置SQL并执行，传入true表示这是排序查询
+    sqlEditor.setValue(sql + orderByClause);
+    executeQuery(true);
 }
 
 // ============================================
@@ -435,8 +498,14 @@ function getCsrfToken() {
         || '';
 }
 
-function executeQuery() {
+function executeQuery(isSortQuery = false) {
     if (!sqlEditor) return;
+
+    // 如果不是排序查询，则重置排序状态
+    if (!isSortQuery) {
+        sortColumn = null;
+        sortOrder = 'asc';
+    }
 
     const sql = sqlEditor.getValue().trim();
 
@@ -459,6 +528,10 @@ function executeQuery() {
 
     currentPage = 1;
     currentQueryData = null;
+    // 保存原始SQL（不含ORDER BY）
+    if (!sql.includes('ORDER BY')) {
+        originalSql = sql;
+    }
     lastExecutedSql = sql;  // 保存最后执行的SQL
     showLoadingOverlay();
 
@@ -606,10 +679,24 @@ function renderResults(data) {
     const columns = data.columns || [];
     const rows = data.rows || [];
 
+    // 检测主键列（id, pk, key 等）
+    const primaryKeyColumn = detectPrimaryKey(columns);
+
     let tableHtml = '<table class="data-table"><thead><tr>';
     tableHtml += '<th style="width: 40px;"></th>'; // 操作列
     columns.forEach(function(col) {
-        tableHtml += `<th>${escapeHtml(col)}</th>`;
+        if (col === primaryKeyColumn) {
+            const sortIcon = sortColumn === col
+                ? (sortOrder === 'asc' ? 'bi-caret-up-fill' : 'bi-caret-down-fill')
+                : 'bi-caret-up';
+            const activeClass = sortColumn === col ? 'text-primary' : '';
+            tableHtml += `<th class="sortable-header ${activeClass}" data-column="${escapeHtml(col)}">
+                ${escapeHtml(col)}
+                <i class="bi ${sortIcon} sort-icon"></i>
+            </th>`;
+        } else {
+            tableHtml += `<th>${escapeHtml(col)}</th>`;
+        }
     });
     tableHtml += '</tr></thead><tbody>';
 
@@ -638,6 +725,12 @@ function renderResults(data) {
         const index = $(this).data('index');
         const rowData = currentQueryData.rows[index];
         showRowDetailModal(rowData);
+    });
+
+    // 绑定排序点击事件
+    $('.sortable-header').on('click', function() {
+        const column = $(this).data('column');
+        handleSortClick(column);
     });
 
     bindPaginationEvents();
