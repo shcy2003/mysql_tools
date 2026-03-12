@@ -20,14 +20,14 @@
 <body>
     {% include 'navbar.html' %}
 
-    <div class="container-fluid" style="overflow: hidden; height: 100vh;">
-        <div class="d-flex" id="main-row" style="height: 100%;">
+    <div class="container-fluid">
+        <div class="d-flex" id="main-row">
             {% include 'sidebar.html' %}
 
             <!-- Sidebar Resizer -->
             <div id="sidebar-resizer" style="width: 5px; cursor: col-resize; background: transparent; flex-shrink: 0; z-index: 1000;"></div>
 
-            <main class="flex-grow-1 px-md-4 pb-12 main-content" id="main-content" style="overflow: hidden; min-width: 0;">
+            <main class="flex-grow-1 px-md-4 pb-12 main-content" id="main-content">
                 {% block page_title_block %}
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">{% block page_title %}{% endblock %}</h1>
