@@ -1,12 +1,20 @@
 from django import forms
 from .models import MySQLConnection
+from environments.models import Environment
 
 
 class MySQLConnectionForm(forms.ModelForm):
     """MySQL 连接配置表单"""
+    environment = forms.ModelChoiceField(
+        queryset=Environment.objects.all(),
+        required=False,
+        empty_label='请选择环境（可选）',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = MySQLConnection
-        fields = ['name', 'host', 'port', 'database', 'username', 'password']
+        fields = ['name', 'host', 'port', 'database', 'username', 'password', 'environment']
         widgets = {
             'name': forms.TextInput(
                 attrs={
@@ -52,4 +60,5 @@ class MySQLConnectionForm(forms.ModelForm):
             'database': '数据库名称',
             'username': '用户名',
             'password': '密码',
+            'environment': '所属环境',
         }

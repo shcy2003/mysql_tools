@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'queries',
     'audit',
     'desensitization',
+    'environments',
     'apidoc',
 ]
 

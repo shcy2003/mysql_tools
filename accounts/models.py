@@ -12,6 +12,7 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='normal')
     last_login_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name='上次登录IP')
     login_count = models.PositiveIntegerField(default=0, verbose_name='登录次数')
+    environments = models.ManyToManyField('environments.Environment', blank=True, verbose_name='可访问环境')
 
     # 显式定义 groups 和 user_permissions 字段，避免与 auth.User 冲突
     groups = models.ManyToManyField(

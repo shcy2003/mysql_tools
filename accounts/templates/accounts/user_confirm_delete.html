@@ -16,22 +16,22 @@
             <div class="card-body">
                 <div class="alert alert-danger">
                     <i class="bi bi-exclamation-circle"></i>
-                    <strong>警告：</strong>此操作不可恢复！删除用户 {{ user.username }} 将会永久删除该用户的所有数据，包括连接、查询历史、脱敏规则和审计日志。
+                    <strong>警告：</strong>此操作不可恢复！删除用户 {{ edit_user.edit_username }} 将会永久删除该用户的所有数据，包括连接、查询历史、脱敏规则和审计日志。
                 </div>
 
                 <div class="mb-4">
                     <p><strong>用户信息：</strong></p>
                     <ul class="list-unstyled">
-                        <li>用户名：{{ user.username }}</li>
-                        <li>邮箱：{{ user.email|default:'-' }}</li>
+                        <li>用户名：{{ edit_user.edit_username }}</li>
+                        <li>邮箱：{{ edit_user.email|default:'-' }}</li>
                         <li>
-                            角色：{% if user.role == 'admin' %}
+                            角色：{% if edit_user.role == 'admin' %}
                                 <span class="badge bg-danger">管理员</span>
                             {% else %}
                                 <span class="badge bg-primary">普通用户</span>
                             {% endif %}
                         </li>
-                        <li>状态：{% if user.is_active %}
+                        <li>状态：{% if edit_user.is_active %}
                                 <span class="badge bg-success">启用</span>
                             {% else %}
                                 <span class="badge bg-secondary">禁用</span>
@@ -47,7 +47,7 @@
                         <button type="submit" class="btn btn-danger">
                             <i class="bi bi-trash"></i> 确认删除
                         </button>
-                        <a href="{% url 'accounts:user_list' %}" class="btn btn-secondary">
+                        <a href="{% url 'accounts:edit_user_list' %}" class="btn btn-secondary">
                             <i class="bi bi-arrow-left"></i> 取消
                         </a>
                     </div>

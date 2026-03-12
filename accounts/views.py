@@ -108,12 +108,13 @@ def user_create(request):
             if password:
                 user.set_password(password)
             user.save()
+            form.save_m2m()  # 保存多对多关系（environments）
             messages.success(request, f'用户 {user.username} 创建成功！')
             return redirect('accounts:user_list')
     else:
         form = UserForm()
 
-    return render(request, 'accounts/user_form.html', {'form': form, 'title': '创建用户'})
+    return render(request, 'accounts/user_form.html', {'form': form, 'title': '创建用户', 'edit_user': None})
 
 
 @login_required
@@ -133,12 +134,13 @@ def user_edit(request, user_id):
             if password:
                 updated_user.set_password(password)
             updated_user.save()
+            form.save_m2m()  # 保存多对多关系（environments）
             messages.success(request, f'用户 {updated_user.username} 更新成功！')
             return redirect('accounts:user_list')
     else:
         form = UserForm(instance=user)
 
-    return render(request, 'accounts/user_form.html', {'form': form, 'title': '编辑用户', 'user': user})
+    return render(request, 'accounts/user_form.html', {'form': form, 'title': '编辑用户', 'edit_user': user})
 
 
 @login_required
@@ -161,4 +163,4 @@ def user_delete(request, user_id):
         messages.success(request, f'用户 {username} 删除成功！')
         return redirect('accounts:user_list')
 
-    return render(request, 'accounts/user_confirm_delete.html', {'user': user})
+    return render(request, 'accounts/user_confirm_delete.html', {'edit_user': user})

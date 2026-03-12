@@ -10,8 +10,13 @@ from audit.utils import create_audit_log
 @login_required
 def connection_list_view(request):
     """连接列表视图"""
-    # 所有登录用户都可以查看所有连接
-    connections = MySQLConnection.objects.all()
+    if request.user.role == 'admin':
+        # 管理员可以看到所有连接
+        connections = MySQLConnection.objects.all()
+    else:
+        # 普通用户只能看到自己所属环境的连接
+        user_env_ids = request.user.environments.values_list('id', flat=True)
+        connections = MySQLConnection.objects.filter(environment_id__in=user_env_ids)
     return render(request, 'connections/list.html', {'connections': connections})
 
 
@@ -306,6 +311,13 @@ def api_query_execute(request):
         # 检查权限
         if request.user.role != 'admin' and connection.created_by != request.user:
             return api_response(code=403, message='没有权限使用此连接')
+
+        # 检查环境权限
+        if request.user.role != 'admin':
+            user_env_ids = request.user.environments.values_list('id', flat=True)
+            conn_env_id = connection.environment_id
+            if conn_env_id and conn_env_id not in user_env_ids:
+                return api_response(code=403, message='没有权限使用此连接（环境不匹配）')
         
         # 验证 SQL 语句（只允许 SELECT）
         sql_upper = sql.upper().lstrip()

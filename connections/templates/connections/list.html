@@ -68,6 +68,11 @@
                     </div>
                     <div class="ms-3 flex-grow-1">
                         <h6 class="mb-1">{{ conn.name }}</h6>
+                        {% if conn.environment %}
+                        <span class="badge bg-info">{{ conn.environment.name }}</span>
+                        {% else %}
+                        <span class="badge bg-secondary">未设置环境</span>
+                        {% endif %}
                     </div>
                 </div>
 

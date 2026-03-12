@@ -30,6 +30,13 @@ class AuditLog(models.Model):
         blank=True
     )
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    environment = models.ForeignKey(
+        'environments.Environment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='环境'
+    )
     sql = models.TextField(null=True, blank=True, verbose_name='SQL 语句')
     execution_time = models.FloatField(null=True, blank=True, verbose_name='执行时间(ms)')
     ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name='IP 地址')

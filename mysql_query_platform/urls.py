@@ -35,6 +35,7 @@ urlpatterns = [
     path('queries/', include('queries.urls')),
     path('audit/', include('audit.urls')),
     path('desensitization/', include('desensitization.urls')),
+    path('environments/', include('environments.urls')),
 
     # API Endpoints
     path('api/connections/', include('connections.api_urls')),

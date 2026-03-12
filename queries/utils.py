@@ -24,11 +24,15 @@ def run_query(connection, sql, user, request=None, database=None):
         masked_result = apply_masking_rules(
             connection, sql, result, user)
 
+        # 获取连接的环境
+        environment = connection.environment
+
         # 记录查询历史
         from queries.models import QueryHistory
         QueryHistory.objects.create(
             user=user,
             connection=connection,
+            environment=environment,
             sql=sql,
             execution_time=execution_time
         )
@@ -42,14 +46,16 @@ def run_query(connection, sql, user, request=None, database=None):
                 action='query',
                 ip_address=get_client_ip(request),
                 connection=connection,
+                environment=environment,
                 execution_time=execution_time
             )
         else:
             create_audit_log(
                 user=user,
                 action='query',
-                ip_address=None,
                 connection=connection,
+                environment=environment,
+                ip_address=None,
                 execution_time=execution_time
             )
 

@@ -28,6 +28,13 @@ class MySQLConnection(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    environment = models.ForeignKey(
+        'environments.Environment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='所属环境'
+    )
 
     class Meta:
         verbose_name = 'MySQL 连接'

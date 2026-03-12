@@ -64,6 +64,12 @@
                 </li>
                 {% if user.role == 'admin' %}
                     <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'environments:environment_list' %}">
+                            <i class="bi bi-layers"></i>
+                            环境管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link d-flex align-items-center gap-2" href="{% url 'audit:audit_list' %}">
                             <i class="bi bi-file-earmark-text"></i>
                             审计日志

@@ -1,0 +1,1029 @@
+# English translations for MySQL Query Platform
+# Copyright (C) 2024
+# This file is distributed under the same license as the MySQL Query Platform project.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: MySQL Query Platform 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 00:00+0000\n"
+"PO-Revision-Date: 2024-01-01 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: templates/base.html
+msgid "MySQL Query Platform"
+msgstr "MySQL Query Platform"
+
+#: templates/sidebar.html
+msgid "Home"
+msgstr "Home"
+
+#: templates/sidebar.html
+msgid "Table List"
+msgstr "Table List"
+
+#: templates/sidebar.html
+msgid "Please select a connection"
+msgstr "Please select a connection"
+
+#: templates/sidebar.html
+msgid "Please select a database"
+msgstr "Please select a database"
+
+#: templates/queries/sql_query_new.html
+msgid "SQL Query"
+msgstr "SQL Query"
+
+#: templates/queries/sql_query_new.html
+msgid "Field List"
+msgstr "Field List"
+
+#: templates/queries/sql_query_new.html
+msgid "SQL Editor"
+msgstr "SQL Editor"
+
+#: templates/queries/sql_query_new.html
+msgid "Support SELECT or SHOW queries with syntax highlighting"
+msgstr "Support SELECT or SHOW queries with syntax highlighting"
+
+#: templates/queries/sql_query_new.html
+msgid "Enter SQL query..."
+msgstr "Enter SQL query..."
+
+#: templates/queries/sql_query_new.html
+msgid "Execute"
+msgstr "Execute"
+
+#: templates/queries/sql_query_new.html
+msgid "Format"
+msgstr "Format"
+
+#: templates/queries/sql_query_new.html
+msgid "Save"
+msgstr "Save"
+
+#: templates/queries/sql_query_new.html
+msgid "Saved"
+msgstr "Saved"
+
+#: templates/queries/sql_query_new.html
+msgid "Rows per page:"
+msgstr "Rows per page:"
+
+#: templates/queries/sql_query_new.html
+msgid "Ready"
+msgstr "Ready"
+
+#: templates/queries/sql_query_new.html
+msgid "Enter SQL in the editor above and click Execute"
+msgstr "Enter SQL in the editor above and click Execute"
+
+#: templates/queries/sql_query_new.html
+msgid "Query Successful"
+msgstr "Query Successful"
+
+#: templates/queries/sql_query_new.html
+msgid "Export Results"
+msgstr "Export Results"
+
+#: templates/queries/sql_query_new.html
+msgid "Export Excel"
+msgstr "Export Excel"
+
+#: templates/queries/sql_query_new.html
+msgid "Query Failed"
+msgstr "Query Failed"
+
+#: templates/queries/sql_query_new.html
+msgid "No table selected"
+msgstr "No table selected"
+
+#: templates/queries/sql_query_new.html
+msgid "Select a table from the sidebar to view fields"
+msgstr "Select a table from the sidebar to view fields"
+
+#: templates/queries/sql_query_new.html
+msgid "Search query name or SQL..."
+msgstr "Search query name or SQL..."
+
+#: templates/queries/sql_query_new.html
+msgid "Delete Selected"
+msgstr "Delete Selected"
+
+#: templates/queries/sql_query_new.html
+msgid "Query Name"
+msgstr "Query Name"
+
+#: templates/queries/sql_query_new.html
+msgid "SQL Preview"
+msgstr "SQL Preview"
+
+#: templates/queries/sql_query_new.html
+msgid "Connection"
+msgstr "Connection"
+
+#: templates/queries/sql_query_new.html
+msgid "Database"
+msgstr "Database"
+
+#: templates/queries/sql_query_new.html
+msgid "Update Time"
+msgstr "Update Time"
+
+#: templates/queries/sql_query_new.html
+msgid "Actions"
+msgstr "Actions"
+
+#: templates/queries/sql_query_new.html
+msgid "Edit Query"
+msgstr "Edit Query"
+
+#: templates/queries/sql_query_new.html
+msgid "SQL Statement"
+msgstr "SQL Statement"
+
+#: templates/queries/sql_query_new.html
+msgid "Cancel"
+msgstr "Cancel"
+
+#: templates/queries/sql_query_new.html
+msgid "Executing query..."
+msgstr "Executing query..."
+
+#: templates/queries/sql_query_new.html
+msgid "Format SQL"
+msgstr "Format SQL"
+
+#: templates/queries/sql_query_new.html
+msgid "Save Query"
+msgstr "Save Query"
+
+#: templates/queries/sql_query_new.html
+msgid "Select All"
+msgstr "Select All"
+
+#: templates/queries/sql_query_new.html
+msgid "Delete Query"
+msgstr "Delete Query"
+
+#: templates/queries/sql_query_new.html
+msgid "Confirm Delete"
+msgstr "Confirm Delete"
+
+#: templates/queries/sql_query_new.html
+msgid "Yes, Delete"
+msgstr "Yes, Delete"
+
+#: templates/navbar.html
+msgid "Database Query Tool"
+msgstr "Database Query Tool"
+
+#: templates/navbar.html
+msgid "Chinese"
+msgstr "Chinese"
+
+#: templates/navbar.html
+msgid "English"
+msgstr "English"
+
+#: templates/navbar.html
+msgid "Profile"
+msgstr "Profile"
+
+#: templates/navbar.html
+msgid "User Management"
+msgstr "User Management"
+
+#: templates/navbar.html
+msgid "Logout"
+msgstr "Logout"
+
+#: templates/navbar.html
+msgid "Login"
+msgstr "Login"
+
+#: templates/queries/list.html
+msgid "Home"
+msgstr "Home"
+
+#: templates/queries/list.html
+msgid "Welcome to MySQL Query Platform"
+msgstr "Welcome to MySQL Query Platform"
+
+#: templates/queries/list.html
+msgid "Connect to database, execute SQL queries, manage data desensitization rules"
+msgstr "Connect to database, execute SQL queries, manage data desensitization rules"
+
+#: templates/queries/list.html
+msgid "Start Query"
+msgstr "Start Query"
+
+#: templates/queries/list.html
+msgid "Connections"
+msgstr "Connections"
+
+#: templates/queries/list.html
+msgid "Query Records"
+msgstr "Query Records"
+
+#: templates/queries/list.html
+msgid "Login Count"
+msgstr "Login Count"
+
+#: templates/queries/list.html
+msgid "Quick Actions"
+msgstr "Quick Actions"
+
+#: templates/queries/list.html
+msgid "Execute SQL statements"
+msgstr "Execute SQL statements"
+
+#: templates/queries/list.html
+msgid "View history records"
+msgstr "View history records"
+
+#: templates/queries/list.html
+msgid "Manage database connections"
+msgstr "Manage database connections"
+
+#: templates/queries/list.html
+msgid "MySQL Connections"
+msgstr "MySQL Connections"
+
+#: templates/queries/list.html
+msgid "New Connection"
+msgstr "New Connection"
+
+#: templates/queries/list.html
+msgid "Go to Query"
+msgstr "Go to Query"
+
+#: templates/queries/list.html
+msgid "No MySQL Connections"
+msgstr "No MySQL Connections"
+
+#: templates/queries/list.html
+msgid "Create a connection to start querying data"
+msgstr "Create a connection to start querying data"
+
+#: templates/queries/list.html
+msgid "Create First Connection"
+msgstr "Create First Connection"
+
+#: templates/queries/list.html
+msgid "Please contact administrator to create connection"
+msgstr "Please contact administrator to create connection"
+
+#: templates/queries/history.html
+msgid "Query User"
+msgstr "Query User"
+
+#: templates/queries/history.html
+msgid "All Users"
+msgstr "All Users"
+
+#: templates/queries/history.html
+msgid "Database Connection"
+msgstr "Database Connection"
+
+#: templates/queries/history.html
+msgid "All Connections"
+msgstr "All Connections"
+
+#: templates/queries/history.html
+msgid "Start Date"
+msgstr "Start Date"
+
+#: templates/queries/history.html
+msgid "End Date"
+msgstr "End Date"
+
+#: templates/queries/history.html
+msgid "SQL Keyword"
+msgstr "SQL Keyword"
+
+#: templates/queries/history.html
+msgid "Enter SQL keyword"
+msgstr "Enter SQL keyword"
+
+#: templates/queries/history.html
+msgid "Min Execution Time (s)"
+msgstr "Min Execution Time (s)"
+
+#: templates/queries/history.html
+msgid "e.g., 0.5"
+msgstr "e.g., 0.5"
+
+#: templates/queries/history.html
+msgid "Search"
+msgstr "Search"
+
+#: templates/queries/history.html
+msgid "Query Time"
+msgstr "Query Time"
+
+#: templates/queries/history.html
+msgid "SQL Statement"
+msgstr "SQL Statement"
+
+#: templates/queries/history.html
+msgid "Execution Time"
+msgstr "Execution Time"
+
+#: templates/queries/history.html
+msgid "View All"
+msgstr "View All"
+
+#: templates/queries/history.html
+msgid "Copy SQL"
+msgstr "Copy SQL"
+
+#: templates/queries/history.html
+msgid "Re-execute"
+msgstr "Re-execute"
+
+#: templates/queries/history.html
+msgid "Previous Page"
+msgstr "Previous"
+
+#: templates/queries/history.html
+msgid "Next Page"
+msgstr "Next"
+
+#: templates/queries/history.html
+msgid "No query history records"
+msgstr "No query history records"
+
+#: templates/queries/history.html
+msgid "Start SQL Query"
+msgstr "Start SQL Query"
+
+#: templates/queries/history.html
+msgid "SQL copied to clipboard"
+msgstr "SQL copied to clipboard"
+
+#: templates/queries/history.html
+msgid "Copy failed"
+msgstr "Copy failed"
+
+#: templates/queries/saved_queries.html
+msgid "Back to Query"
+msgstr "Back to Query"
+
+#: templates/queries/saved_queries.html
+msgid "Use"
+msgstr "Use"
+
+#: templates/queries/saved_queries.html
+msgid "No saved queries"
+msgstr "No saved queries"
+
+#: templates/queries/saved_queries.html
+msgid "Queries saved in SQL query page will appear here"
+msgstr "Queries saved in SQL query page will appear here"
+
+#: templates/queries/saved_queries.html
+msgid "Are you sure you want to delete this query?"
+msgstr "Are you sure you want to delete this query?"
+
+#: templates/queries/saved_queries.html
+msgid "Are you sure you want to delete selected queries?"
+msgstr "Are you sure you want to delete selected queries?"
+
+#: templates/queries/saved_queries.html
+msgid "Delete failed"
+msgstr "Delete failed"
+
+#: templates/queries/saved_queries.html
+msgid "Delete failed, please try again"
+msgstr "Delete failed, please try again"
+
+#: accounts/templates/accounts/login.html
+msgid "Welcome Back"
+msgstr "Welcome Back"
+
+#: accounts/templates/accounts/login.html
+msgid "Remember Me"
+msgstr "Remember Me"
+
+#: accounts/templates/accounts/login.html
+msgid "Forgot Password?"
+msgstr "Forgot Password?"
+
+#: accounts/templates/accounts/login.html
+msgid "If you forgot your password, please contact the system administrator to reset it."
+msgstr "If you forgot your password, please contact the system administrator to reset it."
+
+#: accounts/templates/accounts/login.html
+msgid "Logging in..."
+msgstr "Logging in..."
+
+#: accounts/templates/accounts/login.html
+msgid "Secure Login"
+msgstr "Secure Login"
+
+#: templates/sidebar.html
+msgid "SQL Query"
+msgstr "SQL Query"
+
+#: templates/sidebar.html
+msgid "Saved Queries"
+msgstr "Saved Queries"
+
+#: templates/sidebar.html
+msgid "Query History"
+msgstr "Query History"
+
+#: templates/sidebar.html
+msgid "Connection Management"
+msgstr "Connection Management"
+
+#: templates/sidebar.html
+msgid "Desensitization Rules"
+msgstr "Desensitization Rules"
+
+#: templates/sidebar.html
+msgid "Audit Logs"
+msgstr "Audit Logs"
+
+#: templates/sidebar.html
+msgid "API Documentation"
+msgstr "API Documentation"
+
+#: templates/queries/sql_query_new.html
+msgid "Execute Query"
+msgstr "Execute Query"
+
+#: templates/queries/sql_query_new.html
+msgid "Clear"
+msgstr "Clear"
+
+#: templates/queries/sql_query_new.html
+msgid "Export Results"
+msgstr "Export Results"
+
+#: templates/queries/sql_query_new.html
+msgid "Query Results"
+msgstr "Query Results"
+
+#: templates/queries/sql_query_new.html
+msgid "Query History"
+msgstr "Query History"
+
+#: templates/queries/sql_query_new.html
+msgid "Select Connection"
+msgstr "Select Connection"
+
+#: templates/queries/sql_query_new.html
+msgid "Select Database"
+msgstr "Select Database"
+
+#: templates/queries/sql_query_new.html
+msgid "Please select a connection first"
+msgstr "Please select a connection first"
+
+#: templates/queries/sql_query_new.html
+msgid "Please select a database"
+msgstr "Please select a database"
+
+#: templates/queries/sql_query_new.html
+msgid "Executing query..."
+msgstr "Executing query..."
+
+#: templates/queries/sql_query_new.html
+msgid "Query executed successfully"
+msgstr "Query executed successfully"
+
+#: templates/queries/sql_query_new.html
+msgid "Query execution failed"
+msgstr "Query execution failed"
+
+#: templates/queries/sql_query_new.html
+msgid "No results returned"
+msgstr "No results returned"
+
+#: templates/queries/sql_query_new.html
+msgid "Execution time"
+msgstr "Execution time"
+
+#: templates/queries/sql_query_new.html
+msgid "rows"
+msgstr "rows"
+
+#: templates/queries/sql_query_new.html
+msgid "Total rows"
+msgstr "Total rows"
+
+#: templates/queries/sql_query_new.html
+msgid "Export as CSV"
+msgstr "Export as CSV"
+
+#: templates/queries/sql_query_new.html
+msgid "Export as Excel"
+msgstr "Export as Excel"
+
+#: templates/queries/list.html
+msgid "Saved Queries"
+msgstr "Saved Queries"
+
+#: templates/queries/list.html
+msgid "Query Name"
+msgstr "Query Name"
+
+#: templates/queries/list.html
+msgid "Created By"
+msgstr "Created By"
+
+#: templates/queries/list.html
+msgid "Created At"
+msgstr "Created At"
+
+#: templates/queries/list.html
+msgid "Actions"
+msgstr "Actions"
+
+#: templates/queries/list.html
+msgid "Load Query"
+msgstr "Load Query"
+
+#: templates/queries/list.html
+msgid "Delete Query"
+msgstr "Delete Query"
+
+#: templates/queries/list.html
+msgid "No saved queries"
+msgstr "No saved queries"
+
+#: templates/queries/list.html
+msgid "Save Current Query"
+msgstr "Save Current Query"
+
+#: templates/queries/history.html
+msgid "Query History"
+msgstr "Query History"
+
+#: templates/queries/history.html
+msgid "SQL Content"
+msgstr "SQL Content"
+
+#: templates/queries/history.html
+msgid "Execute Time"
+msgstr "Execute Time"
+
+#: templates/queries/history.html
+msgid "Execution Status"
+msgstr "Execution Status"
+
+#: templates/queries/history.html
+msgid "Load to Editor"
+msgstr "Load to Editor"
+
+#: templates/queries/history.html
+msgid "No query history"
+msgstr "No query history"
+
+#: connections/templates/connections/list.html
+msgid "Connection List"
+msgstr "Connection List"
+
+#: connections/templates/connections/list.html
+msgid "Add Connection"
+msgstr "Add Connection"
+
+#: connections/templates/connections/list.html
+msgid "Connection Name"
+msgstr "Connection Name"
+
+#: connections/templates/connections/list.html
+msgid "Host"
+msgstr "Host"
+
+#: connections/templates/connections/list.html
+msgid "Port"
+msgstr "Port"
+
+#: connections/templates/connections/list.html
+msgid "Username"
+msgstr "Username"
+
+#: connections/templates/connections/list.html
+msgid "Database"
+msgstr "Database"
+
+#: connections/templates/connections/list.html
+msgid "Status"
+msgstr "Status"
+
+#: connections/templates/connections/list.html
+msgid "Connected"
+msgstr "Connected"
+
+#: connections/templates/connections/list.html
+msgid "Disconnected"
+msgstr "Disconnected"
+
+#: connections/templates/connections/list.html
+msgid "Test Connection"
+msgstr "Test Connection"
+
+#: connections/templates/connections/list.html
+msgid "Edit"
+msgstr "Edit"
+
+#: connections/templates/connections/list.html
+msgid "Delete"
+msgstr "Delete"
+
+#: connections/templates/connections/list.html
+msgid "No connections"
+msgstr "No connections"
+
+#: connections/templates/connections/create.html
+msgid "Create Connection"
+msgstr "Create Connection"
+
+#: connections/templates/connections/create.html
+msgid "Connection Settings"
+msgstr "Connection Settings"
+
+#: connections/templates/connections/create.html
+msgid "Test Connection"
+msgstr "Test Connection"
+
+#: connections/templates/connections/create.html
+msgid "Save"
+msgstr "Save"
+
+#: connections/templates/connections/create.html
+msgid "Cancel"
+msgstr "Cancel"
+
+#: connections/templates/connections/edit.html
+msgid "Edit Connection"
+msgstr "Edit Connection"
+
+#: desensitization/templates/desensitization/list.html
+msgid "Desensitization Rules"
+msgstr "Desensitization Rules"
+
+#: desensitization/templates/desensitization/list.html
+msgid "Add Rule"
+msgstr "Add Rule"
+
+#: desensitization/templates/desensitization/list.html
+msgid "Rule Name"
+msgstr "Rule Name"
+
+#: desensitization/templates/desensitization/list.html
+msgid "Rule Type"
+msgstr "Rule Type"
+
+#: desensitization/templates/desensitization/list.html
+msgid "Pattern"
+msgstr "Pattern"
+
+#: desensitization/templates/desensitization/list.html
+msgid "Replacement"
+msgstr "Replacement"
+
+#: desensitization/templates/desensitization/list.html
+msgid "No desensitization rules"
+msgstr "No desensitization rules"
+
+#: desensitization/templates/desensitization/create.html
+msgid "Create Desensitization Rule"
+msgstr "Create Desensitization Rule"
+
+#: desensitization/templates/desensitization/edit.html
+msgid "Edit Desensitization Rule"
+msgstr "Edit Desensitization Rule"
+
+#: audit/templates/audit/list.html
+msgid "Audit Logs"
+msgstr "Audit Logs"
+
+#: audit/templates/audit/list.html
+msgid "User"
+msgstr "User"
+
+#: audit/templates/audit/list.html
+msgid "Operation"
+msgstr "Operation"
+
+#: audit/templates/audit/list.html
+msgid "IP Address"
+msgstr "IP Address"
+
+#: audit/templates/audit/list.html
+msgid "Time"
+msgstr "Time"
+
+#: audit/templates/audit/list.html
+msgid "Details"
+msgstr "Details"
+
+#: audit/templates/audit/list.html
+msgid "No audit logs"
+msgstr "No audit logs"
+
+#: accounts/templates/accounts/login.html
+msgid "Login"
+msgstr "Login"
+
+#: accounts/templates/accounts/login.html
+msgid "Username"
+msgstr "Username"
+
+#: accounts/templates/accounts/login.html
+msgid "Password"
+msgstr "Password"
+
+#: accounts/templates/accounts/login.html
+msgid "Remember Me"
+msgstr "Remember Me"
+
+#: accounts/templates/accounts/login.html
+msgid "Login"
+msgstr "Login"
+
+#: accounts/templates/accounts/profile.html
+msgid "Profile"
+msgstr "Profile"
+
+#: accounts/templates/accounts/profile.html
+msgid "User Information"
+msgstr "User Information"
+
+#: accounts/templates/accounts/profile.html
+msgid "Role"
+msgstr "Role"
+
+#: accounts/templates/accounts/profile.html
+msgid "Admin"
+msgstr "Admin"
+
+#: accounts/templates/accounts/profile.html
+msgid "Regular User"
+msgstr "Regular User"
+
+#: accounts/templates/accounts/profile.html
+msgid "Change Password"
+msgstr "Change Password"
+
+#: accounts/templates/accounts/user_list.html
+msgid "User List"
+msgstr "User List"
+
+#: accounts/templates/accounts/user_list.html
+msgid "Add User"
+msgstr "Add User"
+
+#: accounts/templates/accounts/user_list.html
+msgid "Email"
+msgstr "Email"
+
+#: accounts/templates/accounts/user_list.html
+msgid "Is Active"
+msgstr "Is Active"
+
+#: accounts/templates/accounts/user_list.html
+msgid "Date Joined"
+msgstr "Date Joined"
+
+#: accounts/templates/accounts/user_list.html
+msgid "No users"
+msgstr "No users"
+
+#: templates/queries/sql_query_new.html
+#: templates/sidebar.html
+msgid "Search tables..."
+msgstr "Search tables..."
+
+#: templates/queries/sql_query_new.html
+msgid "Loading..."
+msgstr "Loading..."
+
+#: templates/queries/sql_query_new.html
+msgid "No tables"
+msgstr "No tables"
+
+#: templates/queries/sql_query_new.html
+msgid "No matching tables"
+msgstr "No matching tables"
+
+#: templates/queries/sql_query_new.html
+msgid "Table Structure"
+msgstr "Table Structure"
+
+#: templates/queries/sql_query_new.html
+msgid "Column Info"
+msgstr "Column Info"
+
+#: templates/queries/sql_query_new.html
+msgid "Index Info"
+msgstr "Index Info"
+
+#: templates/queries/sql_query_new.html
+msgid "Field Name"
+msgstr "Field Name"
+
+#: templates/queries/sql_query_new.html
+msgid "Data Type"
+msgstr "Data Type"
+
+#: templates/queries/sql_query_new.html
+msgid "Allow NULL"
+msgstr "Allow NULL"
+
+#: templates/queries/sql_query_new.html
+msgid "Key Type"
+msgstr "Key Type"
+
+#: templates/queries/sql_query_new.html
+msgid "Default Value"
+msgstr "Default Value"
+
+#: templates/queries/sql_query_new.html
+msgid "Extra"
+msgstr "Extra"
+
+#: templates/queries/sql_query_new.html
+msgid "Index Name"
+msgstr "Index Name"
+
+#: templates/queries/sql_query_new.html
+msgid "Index Type"
+msgstr "Index Type"
+
+#: templates/queries/sql_query_new.html
+msgid "Unique"
+msgstr "Unique"
+
+#: templates/queries/sql_query_new.html
+msgid "Cardinality"
+msgstr "Cardinality"
+
+#: templates/queries/sql_query_new.html
+msgid "Close"
+msgstr "Close"
+
+#: templates/queries/sql_query_new.html
+msgid "First Page"
+msgstr "First Page"
+
+#: templates/queries/sql_query_new.html
+msgid "Previous Page"
+msgstr "Previous Page"
+
+#: templates/queries/sql_query_new.html
+msgid "Next Page"
+msgstr "Next Page"
+
+#: templates/queries/sql_query_new.html
+msgid "Last Page"
+msgstr "Last Page"
+
+#: templates/queries/sql_query_new.html
+msgid "rows per page"
+msgstr "rows per page"
+
+#: templates/queries/sql_query_new.html
+msgid "Select All"
+msgstr "Select All"
+
+#: templates/queries/sql_query_new.html
+msgid "Cancel Selection"
+msgstr "Cancel Selection"
+
+#: templates/queries/sql_query_new.html
+msgid "Desensitize Results"
+msgstr "Desensitize Results"
+
+#: templates/queries/sql_query_new.html
+msgid "Desensitization Preview"
+msgstr "Desensitization Preview"
+
+#: templates/queries/sql_query_new.html
+msgid "Apply to All"
+msgstr "Apply to All"
+
+#: templates/queries/sql_query_new.html
+msgid "Table Info"
+msgstr "Table Info"
+
+#: templates/queries/sql_query_new.html
+msgid "Rows"
+msgstr "Rows"
+
+#: templates/queries/sql_query_new.html
+msgid "Data Size"
+msgstr "Data Size"
+
+#: templates/queries/sql_query_new.html
+msgid "Index Size"
+msgstr "Index Size"
+
+#: templates/queries/sql_query_new.html
+msgid "Close"
+msgstr "Close"
+
+#: templates/errors/403.html
+msgid "Permission Denied"
+msgstr "Permission Denied"
+
+#: templates/errors/403.html
+msgid "You do not have permission to access this page."
+msgstr "You do not have permission to access this page."
+
+#: templates/errors/404.html
+msgid "Page Not Found"
+msgstr "Page Not Found"
+
+#: templates/errors/404.html
+msgid "The page you are looking for does not exist."
+msgstr "The page you are looking for does not exist."
+
+#: templates/errors/500.html
+msgid "Server Error"
+msgstr "Server Error"
+
+#: templates/errors/500.html
+msgid "An error occurred. Please try again later."
+msgstr "An error occurred. Please try again later."
+
+#: templates/queries/sql_query_new.html
+msgid "Confirm"
+msgstr "Confirm"
+
+#: templates/queries/sql_query_new.html
+msgid "Cancel"
+msgstr "Cancel"
+
+#: templates/queries/sql_query_new.html
+msgid "Save Query"
+msgstr "Save Query"
+
+#: templates/queries/sql_query_new.html
+msgid "Query Name"
+msgstr "Query Name"
+
+#: templates/queries/sql_query_new.html
+msgid "Description"
+msgstr "Description"
+
+#: templates/queries/sql_query_new.html
+msgid "Save"
+msgstr "Save"
+
+#: templates/queries/sql_query_new.html
+msgid "Cancel"
+msgstr "Cancel"
+
+#: templates/queries/sql_query_new.html
+msgid "Delete Query"
+msgstr "Delete Query"
+
+#: templates/queries/sql_query_new.html
+msgid "Are you sure you want to delete this query?"
+msgstr "Are you sure you want to delete this query?"
+
+#: templates/queries/sql_query_new.html
+msgid "Yes, Delete"
+msgstr "Yes, Delete"
+
+#: templates/queries/sql_query_new.html
+msgid "Delete Connection"
+msgstr "Delete Connection"
+
+#: templates/queries/sql_query_new.html
+msgid "Are you sure you want to delete this connection?"
+msgstr "Are you sure you want to delete this connection?"
+
+#: templates/queries/sql_query_new.html
+msgid "Delete Desensitization Rule"
+msgstr "Delete Desensitization Rule"
+
+#: templates/queries/sql_query_new.html
+msgid "Are you sure you want to delete this rule?"
+msgstr "Are you sure you want to delete this rule?"
+
+#: templates/queries/sql_query_new.html
+msgid "Delete User"
+msgstr "Delete User"
+
+#: templates/queries/sql_query_new.html
+msgid "Are you sure you want to delete this user?"
+msgstr "Are you sure you want to delete this user?"
+
+#: templates/queries/sql_query_new.html
+msgid "API Documentation"
+msgstr "API Documentation"
+
+#: templates/base.html
+msgid "API Doc"
+msgstr "API Doc"

@@ -97,7 +97,7 @@ class UserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'role', 'is_active')
+        fields = ('username', 'email', 'role', 'is_active', 'environments')
         widgets = {
             'username': forms.TextInput(
                 attrs={
@@ -120,7 +120,15 @@ class UserForm(forms.ModelForm):
                 attrs={
                     'class': 'form-check-input'
                 }
-            )
+            ),
+            'environments': forms.CheckboxSelectMultiple(),
+        }
+        labels = {
+            'username': '用户名',
+            'email': '邮箱',
+            'role': '角色',
+            'is_active': '是否启用',
+            'environments': '可访问环境',
         }
 
     def __init__(self, *args, **kwargs):
