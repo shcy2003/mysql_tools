@@ -44,15 +44,19 @@ def query_history_view(request):
     else:
         history = QueryHistory.objects.filter(user=request.user)
 
-    # 获取所有用户和连接（用于筛选下拉框）
+    # 获取所有用户、连接和环境（用于筛选下拉框）
     from accounts.models import User
-    all_users = User.objects.all()
     from connections.models import MySQLConnection
+    from environments.models import Environment
+
+    all_users = User.objects.all()
     all_connections = MySQLConnection.objects.all()
+    all_environments = Environment.objects.all()
 
     # 筛选条件
     filter_user_id = request.GET.get('user')
     filter_connection_id = request.GET.get('connection')
+    filter_environment_id = request.GET.get('environment')
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
     sql_keyword = request.GET.get('sql_keyword')
@@ -62,6 +66,8 @@ def query_history_view(request):
         history = history.filter(user_id=filter_user_id)
     if filter_connection_id:
         history = history.filter(connection_id=filter_connection_id)
+    if filter_environment_id:
+        history = history.filter(environment_id=filter_environment_id)
     if start_date and end_date:
         from django.utils import timezone
         import datetime
@@ -92,8 +98,10 @@ def query_history_view(request):
         'history': history_page,
         'all_users': all_users,
         'all_connections': all_connections,
+        'all_environments': all_environments,
         'filter_user': filter_user_id,
         'filter_connection': filter_connection_id,
+        'filter_environment': filter_environment_id,
         'filter_start_date': start_date,
         'filter_end_date': end_date,
         'filter_sql_keyword': sql_keyword,

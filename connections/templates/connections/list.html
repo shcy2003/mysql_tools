@@ -13,23 +13,16 @@
     .connection-card:hover {
         box-shadow: 0 8px 30px rgba(0,0,0,0.12);
     }
-    .connection-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 20px;
-    }
+
     .action-btn {
-        width: 36px;
-        height: 36px;
+        width: 44px;
+        height: 44px;
         padding: 0;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         border-radius: 8px;
+        font-size: 16px;
     }
     .empty-state {
         text-align: center;
@@ -39,6 +32,14 @@
         font-size: 64px;
         color: #dee2e6;
         margin-bottom: 20px;
+    }
+    .conn-name {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+    .conn-env-badge {
+        font-size: 0.95rem;
+        padding: 6px 12px;
     }
 </style>
 {% endblock %}
@@ -67,11 +68,11 @@
                         <i class="bi bi-database"></i>
                     </div>
                     <div class="ms-3 flex-grow-1">
-                        <h6 class="mb-1">{{ conn.name }}</h6>
+                        <h5 class="conn-name mb-2">{{ conn.name }}</h5>
                         {% if conn.environment %}
-                        <span class="badge bg-info">{{ conn.environment.name }}</span>
+                        <span class="badge conn-env-badge env-badge" data-env-name="{{ conn.environment.name }}" style="background-color: {{ conn.environment.color|default:'' }}; color: white;">{{ conn.environment.name }}</span>
                         {% else %}
-                        <span class="badge bg-secondary">未设置环境</span>
+                        <span class="badge bg-secondary conn-env-badge">未设置环境</span>
                         {% endif %}
                     </div>
                 </div>
@@ -101,17 +102,11 @@
                 </div>
 
                 <div class="d-flex gap-2">
-                    <a href="{% url 'queries:sql_query' %}?connection={{ conn.id }}" class="btn btn-primary btn-sm flex-grow-1">
-                        <i class="bi bi-play-fill me-1"></i> 查询
+                    <a href="{% url 'connections:connection_edit' conn.id %}" class="btn btn-primary flex-grow-1">
+                        <i class="bi bi-pencil me-1"></i> 编辑
                     </a>
-                    <a href="{% url 'connections:connection_test' conn.id %}" class="btn btn-outline-info btn-sm action-btn" title="测试连接">
-                        <i class="bi bi-plug"></i>
-                    </a>
-                    <a href="{% url 'connections:connection_edit' conn.id %}" class="btn btn-outline-primary btn-sm action-btn" title="编辑">
-                        <i class="bi bi-pencil"></i>
-                    </a>
-                    <a href="{% url 'connections:connection_delete' conn.id %}" class="btn btn-outline-danger btn-sm action-btn" title="删除">
-                        <i class="bi bi-trash"></i>
+                    <a href="{% url 'connections:connection_delete' conn.id %}" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i> 删除
                     </a>
                 </div>
             </div>
@@ -145,4 +140,30 @@
     {% endif %}
 </div>
 {% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const colors = [
+        '#28a745', '#17a2b8', '#007bff', '#6f42c1', '#e83e8c',
+        '#fd7e14', '#20c997', '#6c757d', '#343a40', '#dc3545',
+        '#6610f2', '#e0a800', '#d63384', '#0dcaf0', '#198754'
+    ];
+
+    document.querySelectorAll('.env-badge').forEach(function(badge) {
+        // 如果没有颜色，自动生成
+        if (!badge.style.backgroundColor || badge.style.backgroundColor === '') {
+            const envName = badge.dataset.envName || '';
+            let hash = 0;
+            for (let i = 0; i < envName.length; i++) {
+                hash = envName.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const colorIndex = Math.abs(hash) % colors.length;
+            badge.style.backgroundColor = colors[colorIndex];
+        }
+    });
+});
+</script>
 {% endblock %}

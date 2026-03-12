@@ -169,11 +169,17 @@ def api_connection_tree(request):
     获取连接树 API
     GET /api/connections/tree/
 
-    返回所有连接，以及每个连接下的数据库和表结构。
+    返回用户可访问的连接，以及每个连接下的数据库和表结构。
     """
     try:
-        # 获取所有连接（所有登录用户都可以看到所有连接）
-        connections = MySQLConnection.objects.all()
+        # 根据用户角色过滤连接
+        if request.user.role == 'admin':
+            # 管理员可以看到所有连接
+            connections = MySQLConnection.objects.all()
+        else:
+            # 普通用户只能看到自己所属环境的连接
+            user_env_ids = request.user.environments.values_list('id', flat=True)
+            connections = MySQLConnection.objects.filter(environment_id__in=user_env_ids)
 
         tree_data = []
         for conn in connections:

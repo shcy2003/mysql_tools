@@ -18,6 +18,7 @@ def audit_log_list_view(request):
     action = request.GET.get('action')
     user_id = request.GET.get('user')
     connection_id = request.GET.get('connection')
+    environment_id = request.GET.get('environment')
     date_range = request.GET.get('date_range')
     min_time = request.GET.get('min_time')
 
@@ -35,6 +36,8 @@ def audit_log_list_view(request):
         logs = logs.filter(user_id=user_id)
     if connection_id:
         logs = logs.filter(connection_id=connection_id)
+    if environment_id:
+        logs = logs.filter(environment_id=environment_id)
 
     # 处理时间范围
     if date_range:
@@ -68,19 +71,24 @@ def audit_log_list_view(request):
     page = request.GET.get('page')
     logs_page = paginator.get_page(page)
 
-    # 获取所有用户和连接信息（用于筛选）
+    # 获取所有用户、连接和环境信息（用于筛选）
     from accounts.models import User
-    all_users = User.objects.all()
     from connections.models import MySQLConnection
+    from environments.models import Environment
+
+    all_users = User.objects.all()
     all_connections = MySQLConnection.objects.all()
+    all_environments = Environment.objects.all()
 
     context = {
         'logs': logs_page,
         'all_users': all_users,
         'all_connections': all_connections,
+        'all_environments': all_environments,
         'selected_action': action,
         'selected_user': user_id,
         'selected_connection': connection_id,
+        'selected_environment': environment_id,
         'selected_date_range': date_range,
         'selected_min_time': min_time,
     }

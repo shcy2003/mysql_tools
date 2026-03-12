@@ -44,8 +44,14 @@ def api_connection_tree(request):
     }
     """
     try:
-        # 获取所有连接（所有登录用户都可以使用任意连接）
-        connections = MySQLConnection.objects.all()
+        # 根据用户角色过滤连接
+        if request.user.role == 'admin':
+            # 管理员可以看到所有连接
+            connections = MySQLConnection.objects.all()
+        else:
+            # 普通用户只能看到自己所属环境的连接
+            user_env_ids = request.user.environments.values_list('id', flat=True)
+            connections = MySQLConnection.objects.filter(environment_id__in=user_env_ids)
         
         tree_data = []
         
@@ -55,6 +61,7 @@ def api_connection_tree(request):
                 'name': conn.name,
                 'host': conn.host,
                 'port': conn.port,
+                'environment': conn.environment.name if conn.environment else '',
                 'databases': []
             }
             

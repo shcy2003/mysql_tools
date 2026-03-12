@@ -7,8 +7,8 @@ class MySQLConnectionForm(forms.ModelForm):
     """MySQL 连接配置表单"""
     environment = forms.ModelChoiceField(
         queryset=Environment.objects.all(),
-        required=False,
-        empty_label='请选择环境（可选）',
+        required=True,
+        empty_label='请选择环境',
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 

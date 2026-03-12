@@ -82,7 +82,8 @@
             if (data.code === 0) {
                 var options = '<option value="">请选择连接...</option>';
                 data.data.forEach(function(conn) {
-                    options += '<option value="' + conn.id + '">' + conn.name + '</option>';
+                    var envLabel = conn.environment ? ' [' + conn.environment + ']' : '';
+                    options += '<option value="' + conn.id + '">' + conn.name + envLabel + '</option>';
                 });
                 $select.html(options);
 

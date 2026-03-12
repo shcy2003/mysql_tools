@@ -108,7 +108,16 @@ def user_create(request):
             if password:
                 user.set_password(password)
             user.save()
-            form.save_m2m()  # 保存多对多关系（environments）
+
+            # 手动保存多对多关系（environments）
+            from environments.models import Environment
+            env_ids = request.POST.getlist('environments')
+            if env_ids:
+                environments = Environment.objects.filter(id__in=env_ids)
+            else:
+                environments = Environment.objects.none()
+            user.environments.set(environments)
+
             messages.success(request, f'用户 {user.username} 创建成功！')
             return redirect('accounts:user_list')
     else:
@@ -134,7 +143,16 @@ def user_edit(request, user_id):
             if password:
                 updated_user.set_password(password)
             updated_user.save()
-            form.save_m2m()  # 保存多对多关系（environments）
+
+            # 手动保存多对多关系（environments）
+            from environments.models import Environment
+            env_ids = request.POST.getlist('environments')
+            if env_ids:
+                environments = Environment.objects.filter(id__in=env_ids)
+            else:
+                environments = Environment.objects.none()
+            updated_user.environments.set(environments)
+
             messages.success(request, f'用户 {updated_user.username} 更新成功！')
             return redirect('accounts:user_list')
     else:

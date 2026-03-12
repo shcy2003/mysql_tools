@@ -79,12 +79,12 @@
                     <div class="mb-3">
                         <label class="form-label">可访问环境</label>
                         <div class="row border rounded py-2 px-1">
-                            {% for choice in form.environments %}
+                            {% for choice in form.fields.environments.queryset %}
                                 <div class="col-md-4 col-sm-6 mb-2">
                                     <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="{{ choice.name }}" value="{{ choice.choice_value }}" id="{{ choice.id_for_label }}" {% if choice.is_checked %}checked{% endif %}>
-                                        <label class="form-check-label" for="{{ choice.id_for_label }}">
-                                            {{ choice.choice_label }}
+                                        <input class="form-check-input" type="checkbox" name="environments" value="{{ choice.id }}" id="env_{{ choice.id }}" {% if edit_user and choice in edit_user.environments.all %}checked{% endif %}>
+                                        <label class="form-check-label" for="env_{{ choice.id }}">
+                                            {{ choice.name }}
                                         </label>
                                     </div>
                                 </div>

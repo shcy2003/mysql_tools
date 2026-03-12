@@ -48,6 +48,17 @@
                     </select>
                 </div>
                 <div class="col-md-2">
+                    <label class="form-label">环境</label>
+                    <select class="form-select" name="environment">
+                        <option value="">全部环境</option>
+                        {% for env in all_environments %}
+                            <option value="{{ env.id }}" {% if filter_environment == env.id|stringformat:"s" %}selected{% endif %}>
+                                {{ env.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label">开始日期</label>
                     <input type="date" class="form-control" name="start_date" value="{{ filter_start_date|default:'' }}">
                 </div>
@@ -85,6 +96,7 @@
                                 <tr>
                                     <th>查询时间</th>
                                     <th>查询人</th>
+                                    <th>环境</th>
                                     <th>连接</th>
                                     <th>SQL 语句</th>
                                     <th>执行时间</th>
@@ -96,6 +108,7 @@
                                     <tr>
                                         <td>{{ query.created_at|date:"Y-m-d H:i:s" }}</td>
                                         <td>{{ query.user.username }}</td>
+                                        <td>{% if query.environment %}{{ query.environment.name }}{% else %}-{% endif %}</td>
                                         <td>{% if query.connection %}{{ query.connection.name }}{% else %}-{% endif %}</td>
                                         <td>
                                             <div class="sql-preview">

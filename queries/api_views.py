@@ -704,6 +704,7 @@ def api_execute_query(request):
                 QueryHistory.objects.create(
                     user=request.user,
                     connection=connection,
+                    environment=connection.environment,
                     sql=sql,
                     execution_time=execution_time
                 )

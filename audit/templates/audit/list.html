@@ -63,6 +63,17 @@
                                             </select>
                                         </div>
                                         <div class="col-md-3">
+                                            <label for="environment" class="form-label">环境</label>
+                                            <select class="form-select" id="environment" name="environment">
+                                                <option value="">全部</option>
+                                                {% for env in all_environments %}
+                                                    <option value="{{ env.id }}" {% if selected_environment == env.id|stringformat:"s" %}selected{% endif %}>
+                                                        {{ env.name }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
                                             <label for="date_range" class="form-label">时间范围</label>
                                             <select class="form-select" id="date_range" name="date_range">
                                                 <option value="">全部</option>
@@ -116,6 +127,7 @@
                                                     <th>时间</th>
                                                     <th>用户</th>
                                                     <th>操作</th>
+                                                    <th>环境</th>
                                                     <th>连接</th>
                                                     <th>执行时间</th>
                                                     <th>IP地址</th>
@@ -127,6 +139,7 @@
                                                         <td>{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
                                                         <td>{{ log.user.username }}</td>
                                                         <td>{{ log.get_action_display }}</td>
+                                                        <td>{% if log.environment %}{{ log.environment.name }}{% else %}-{% endif %}</td>
                                                         <td>{% if log.connection %}{{ log.connection.name }}{% else %}-{% endif %}</td>
                                                         <td>{% if log.execution_time %}{{ log.execution_time|floatformat:2 }}ms{% else %}-{% endif %}</td>
                                                         <td>{{ log.ip_address }}</td>
