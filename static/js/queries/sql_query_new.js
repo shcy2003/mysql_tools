@@ -1191,8 +1191,11 @@ function initEditorResizer() {
 function showFieldsPanel() {
     const panel = $('#fieldsPanel');
     const panelCol = $('#fieldsPanelCol');
+    const mainEditorCol = $('#mainEditorCol');
     panelCol.show();
     panel.show();
+    // 设置主编辑区域最大宽度，减去字段列表宽度260px
+    mainEditorCol.css('max-width', 'calc(100% - 260px)');
     fieldsPanelVisible = true;
 }
 
@@ -1200,8 +1203,11 @@ function showFieldsPanel() {
 function hideFieldsPanel() {
     const panel = $('#fieldsPanel');
     const panelCol = $('#fieldsPanelCol');
+    const mainEditorCol = $('#mainEditorCol');
     panel.hide();
     panelCol.hide();
+    // 恢复主编辑区域最大宽度
+    mainEditorCol.css('max-width', '100%');
     fieldsPanelVisible = false;
 }
 
