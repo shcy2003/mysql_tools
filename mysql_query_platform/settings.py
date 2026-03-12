@@ -103,4 +103,5 @@ AUTH_USER_MODEL = 'accounts.User'
 CSRF_TRUSTED_ORIGINS = [
     'https://pma-self.evegdpre.com',
     'https://evegdpre.com',
+    'http://127.0.0.1:8000',
 ]
