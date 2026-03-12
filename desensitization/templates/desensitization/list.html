@@ -358,14 +358,14 @@
 
 {% block extra_js %}
 <script>
-    $(document).ready(function() {
-        // CSRF token 获取函数
-        function getCsrfToken() {
-            return document.querySelector('[name=csrfmiddlewaretoken]')?.value
-                || document.cookie.match(/csrftoken=([^;]+)/)?.[1]
-                || '';
-        }
+    // CSRF token 获取函数（全局）
+    function getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value
+            || document.cookie.match(/csrftoken=([^;]+)/)?.[1]
+            || '';
+    }
 
+    $(document).ready(function() {
         // 切换规则状态
         $('.toggle-status').on('click', function(e) {
             e.preventDefault();
@@ -473,8 +473,13 @@
         // 导入规则
         window.importRules = function(input) {
             var file = input.files[0];
-            if (!file) return;
+            if (!file) {
+                alert('请选择文件');
+                return;
+            }
 
+            console.log('Importing file:', file.name);
+            var $input = $(input);
             var formData = new FormData();
             formData.append('file', file);
 
@@ -485,24 +490,26 @@
                 processData: false,
                 contentType: false,
                 beforeSend: function(xhr) {
+                    console.log('CSRF token:', getCsrfToken());
                     xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
-                    input.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> 导入中...');
+                    $input.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> 导入中...');
                 },
                 success: function(response) {
+                    console.log('Response:', response);
                     if (response.code === 0) {
                         alert(response.message);
-                        // 刷新页面
                         location.reload();
                     } else {
                         alert(response.message || '导入失败');
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('Import error:', status, error);
-                    alert('导入失败，请重试');
+                    console.error('Import error:', status, error, xhr.responseText);
+                    alert('导入失败: ' + (xhr.responseText || status));
                 },
                 complete: function() {
-                    input.value = ''; // 清空文件选择
+                    input.value = '';
+                    $input.prop('disabled', false);
                 }
             });
         };
