@@ -122,11 +122,58 @@
     border-bottom: 1px solid #dee2e6;
     padding: 15px;
     flex-shrink: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sql-editor-section .mb-1 {
+    flex-shrink: 0;
+    margin-bottom: 8px !important;
+}
+
+.sql-editor-section .action-buttons {
+    flex-shrink: 0;
+    margin-top: 10px !important;
+}
+
+.sql-editor-section .sql-textarea-wrapper {
+    flex: 1;
+    min-height: 50px;
+}
+
+.editor-resizer {
+    height: 6px;
+    background: #e9ecef;
+    cursor: row-resize;
+    flex-shrink: 0;
+    transition: background 0.2s;
+    position: relative;
+}
+
+.editor-resizer::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 3px;
+    background: #adb5bd;
+    border-radius: 2px;
+}
+
+.editor-resizer:hover,
+.editor-resizer.resizing {
+    background: #0d6efd;
 }
 .results-section {
     padding: 15px;
     background: #f8f9fa;
     overflow-y: auto;
+    flex: 1;
+    min-height: 0;
 }
 
 .results-container {
@@ -144,12 +191,12 @@
     border: 1px solid #ced4da;
     border-radius: 4px;
     overflow: hidden;
-    min-height: 150px;
+    min-height: 100px;
 }
 
 /* CodeMirror编辑器样式 */
 .sql-textarea-wrapper .CodeMirror {
-    height: 200px !important;
+    height: 100% !important;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     font-size: 14px;
     line-height: 1.5;
@@ -242,6 +289,8 @@
     overflow-x: auto;
     overflow-y: auto;
     max-height: 50vh;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 .data-table {
     width: 100%;
@@ -368,18 +417,25 @@
     width: 260px;
     min-width: 200px;
     max-width: 350px;
-    flex-shrink: 0;
-}
-
-.fields-panel-toggle {
-    margin-bottom: 10px;
-}
-
-.fields-panel-card {
+    height: 100%;
     background: #f8f9fa;
     border-radius: 8px;
     border: 1px solid #dee2e6;
     overflow: hidden;
+}
+
+.fields-panel-card {
+    height: 100%;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.fields-panel-toggle {
+    margin-bottom: 10px;
 }
 
 .fields-panel-header {
@@ -389,6 +445,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .fields-panel-header h6 {
@@ -400,14 +457,17 @@
 
 .fields-panel-body {
     padding: 10px;
-    max-height: 750px;
     overflow-y: auto;
+    flex: 1;
+    min-height: 0;
 }
 
 .fields-list {
     list-style: none;
     padding: 0;
     margin: 0;
+    max-height: 100%;
+    overflow-y: auto;
 }
 
 .field-item {
@@ -514,18 +574,11 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid p-0" style="min-height: calc(100vh - 120px);">
-    <!-- Header with toggle button -->
-    <div class="d-flex justify-content-between align-items-center mb-2" style="flex-shrink: 0;">
-        <button class="btn btn-sm btn-outline-secondary fields-panel-toggle" id="toggleFieldsPanel">
-            <i class="bi bi-list-columns"></i> 字段列表
-        </button>
-    </div>
-
-    <div class="row align-items-start" style="height: 100%; overflow: hidden;">
+<div class="container-fluid p-0" style="height: calc(100vh - 70px - 80px - 30px); overflow: hidden;">
+    <div class="row g-0" style="height: 100%;">
         <!-- Editor and Results Section -->
-        <div class="col" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; min-width: 0;">
-            <div class="sql-editor-section mb-2" style="flex-shrink: 0;">
+        <div class="col" id="mainEditorCol" style="display: flex; flex-direction: column; height: 100%; overflow: hidden; overflow-x: hidden; min-width: 0;">
+            <div class="sql-editor-section" id="sqlEditorSection" style="flex-shrink: 0;">
                 <div class="mb-1">
                     <label class="form-label fw-bold mb-0">
                         <i class="bi bi-code-square"></i> SQL编辑器
@@ -562,8 +615,11 @@
                 </div>
             </div>
 
+            <!-- Resizer -->
+            <div id="editorResizer" class="editor-resizer"></div>
+
             <!-- Results Section -->
-            <div class="results-section" style="flex: 1; overflow-y: auto; min-height: 0;">
+            <div class="results-section" id="resultsSection" style="flex: 1; overflow-y: auto; min-height: 0;">
                 <div class="results-container" id="resultsContainer">
                     <div class="empty-state" id="emptyState">
                         <div class="empty-state-icon">
@@ -608,11 +664,12 @@
         </div>
 
         <!-- Fields Panel -->
-        <div class="col-auto align-self-start">
-            <div class="fields-panel" id="fieldsPanel" style="display: none;">
+        <div class="col-auto" id="fieldsPanelCol" style="display: none; height: 100%;">
+            <div class="fields-panel" id="fieldsPanel" style="display: block;">
                 <div class="fields-panel-card">
                     <div class="fields-panel-header">
                         <h6><i class="bi bi-columns"></i> <span id="currentTableName">未选择表</span></h6>
+                        <button type="button" class="btn-close btn-sm" id="closeFieldsPanel" title="关闭"></button>
                     </div>
                     <div class="fields-panel-body">
                         <div id="fieldsListContainer">

@@ -84,6 +84,7 @@ $(document).ready(function() {
         checkSavedQuery();
         initSavedQueriesModal();
         initFieldsPanel();
+        initEditorResizer();
     });
 
     // 监听侧边栏连接状态变化
@@ -1105,27 +1106,114 @@ function deleteQueries(queryIds) {
 
 // 初始化字段列表面板
 function initFieldsPanel() {
-    // 字段列表面板切换按钮
-    $('#toggleFieldsPanel').on('click', function() {
-        toggleFieldsPanel();
+    // 字段列表面板关闭按钮
+    $('#closeFieldsPanel').on('click', function() {
+        hideFieldsPanel();
     });
 
     // 暴露字段列表加载函数给外部调用
+    window.loadFieldsPanel = showFieldsPanel;
     window.loadFieldsList = loadFieldsList;
+}
+
+// 初始化编辑器高度调整
+function initEditorResizer() {
+    const resizer = document.getElementById('editorResizer');
+    const editorSection = document.getElementById('sqlEditorSection');
+    const resultsSection = document.getElementById('resultsSection');
+    const container = document.getElementById('mainEditorCol');
+
+    if (!resizer || !editorSection || !resultsSection) return;
+
+    let isResizing = false;
+    let startY = 0;
+    let startEditorHeight = 0;
+
+    // 加载保存的高度
+    const savedHeight = localStorage.getItem('sqlEditorHeight');
+    if (savedHeight) {
+        const height = parseInt(savedHeight);
+        if (height > 80 && height < container.offsetHeight - 100) {
+            editorSection.style.height = height + 'px';
+            editorSection.style.flex = 'none';
+        }
+    }
+
+    resizer.addEventListener('mousedown', function(e) {
+        isResizing = true;
+        startY = e.clientY;
+        startEditorHeight = editorSection.offsetHeight;
+        resizer.classList.add('resizing');
+        document.body.style.cursor = 'row-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isResizing) return;
+
+        // 鼠标向下移动时编辑器变高，向上移动时变矮
+        const diff = e.clientY - startY;
+        let newHeight = startEditorHeight + diff;
+        const containerHeight = container.offsetHeight;
+
+        // 限制最小和最大高度
+        newHeight = Math.max(80, Math.min(newHeight, containerHeight - 100));
+
+        editorSection.style.height = newHeight + 'px';
+        editorSection.style.flex = 'none';
+
+        // 更新 CodeMirror 编辑器大小
+        if (sqlEditor && sqlEditor.refresh) {
+            sqlEditor.refresh();
+        }
+    });
+
+    document.addEventListener('mouseup', function() {
+        if (isResizing) {
+            isResizing = false;
+            resizer.classList.remove('resizing');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+
+            // 保存高度到 localStorage
+            localStorage.setItem('sqlEditorHeight', editorSection.offsetHeight);
+
+            // 刷新 CodeMirror
+            if (sqlEditor && sqlEditor.refresh) {
+                sqlEditor.refresh();
+            }
+        }
+    });
+}
+
+// 显示字段列表面板
+function showFieldsPanel() {
+    const panel = $('#fieldsPanel');
+    const panelCol = $('#fieldsPanelCol');
+    panelCol.show();
+    panel.show();
+    fieldsPanelVisible = true;
+}
+
+// 隐藏字段列表面板
+function hideFieldsPanel() {
+    const panel = $('#fieldsPanel');
+    const panelCol = $('#fieldsPanelCol');
+    panel.hide();
+    panelCol.hide();
+    fieldsPanelVisible = false;
 }
 
 // 切换字段列表面板的显示/隐藏
 function toggleFieldsPanel() {
     const panel = $('#fieldsPanel');
-    const btn = $('#toggleFieldsPanel');
 
     if (fieldsPanelVisible) {
         panel.hide();
-        btn.html('<i class="bi bi-list-columns"></i> 字段列表');
         fieldsPanelVisible = false;
     } else {
         panel.show();
-        btn.html('<i class="bi bi-x-lg"></i> 隐藏');
         fieldsPanelVisible = true;
     }
 }
@@ -1145,7 +1233,7 @@ function loadFieldsList(tableName) {
 
     // 如果面板隐藏，自动打开
     if (!fieldsPanelVisible) {
-        toggleFieldsPanel();
+        showFieldsPanel();
     }
 
     // 显示加载状态
