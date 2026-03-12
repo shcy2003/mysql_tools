@@ -63,7 +63,13 @@
       "Bash(git add .)",
       "Bash(git commit -m \"项目清理：删除临时文件和未使用的函数\")",
       "Bash(git add:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Read(//c/git/mysql_query_platform/**)",
+      "Bash(done)",
+      "Bash(ls c:/git/mysql_query_platform/*.py)"
     ]
   }
 }
