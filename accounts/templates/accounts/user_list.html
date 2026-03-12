@@ -2,6 +2,18 @@
 
 {% block title %} - 用户管理{% endblock %}
 
+{% block extra_css %}
+<style>
+    .user-env-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        margin: 2px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
 {% block page_title %}用户管理{% endblock %}
 
 {% block content %}
@@ -34,6 +46,7 @@
                                 <th>用户名</th>
                                 <th>邮箱</th>
                                 <th>角色</th>
+                                <th>环境权限</th>
                                 <th>状态</th>
                                 <th>上次登录</th>
                                 <th>登录次数</th>
@@ -51,6 +64,17 @@
                                         <span class="badge bg-danger">管理员</span>
                                     {% else %}
                                         <span class="badge bg-primary">普通用户</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.role == 'admin' %}
+                                        <span class="badge bg-danger">全部环境</span>
+                                    {% elif user.environments.all %}
+                                        {% for env in user.environments.all %}
+                                            <span class="badge me-1 user-env-badge" data-env-name="{{ env.name }}" style="color: white;">{{ env.name }}</span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">无权限</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -75,7 +99,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="8" class="text-center">暂无用户数据</td>
+                                <td colspan="9" class="text-center">暂无用户数据</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -85,4 +109,27 @@
         </div>
     </div>
 </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const colors = [
+        '#28a745', '#17a2b8', '#007bff', '#6f42c1', '#e83e8c',
+        '#fd7e14', '#20c997', '#6c757d', '#343a40', '#dc3545',
+        '#6610f2', '#e0a800', '#d63384', '#0dcaf0', '#198754'
+    ];
+
+    document.querySelectorAll('.user-env-badge').forEach(function(badge) {
+        const envName = badge.dataset.envName || '';
+        let hash = 0;
+        for (let i = 0; i < envName.length; i++) {
+            hash = envName.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const colorIndex = Math.abs(hash) % colors.length;
+        badge.style.backgroundColor = colors[colorIndex];
+    });
+});
+</script>
 {% endblock %}
