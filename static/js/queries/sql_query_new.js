@@ -607,16 +607,19 @@ function renderResults(data) {
     const rows = data.rows || [];
 
     let tableHtml = '<table class="data-table"><thead><tr>';
+    tableHtml += '<th style="width: 40px;"></th>'; // 操作列
     columns.forEach(function(col) {
         tableHtml += `<th>${escapeHtml(col)}</th>`;
     });
     tableHtml += '</tr></thead><tbody>';
 
     if (rows.length === 0) {
-        tableHtml += `<tr><td colspan="${columns.length}" class="text-center text-muted py-4">暂无数据</td></tr>`;
+        tableHtml += `<tr><td colspan="${columns.length + 1}" class="text-center text-muted py-4">暂无数据</td></tr>`;
     } else {
-        rows.forEach(function(row) {
+        rows.forEach(function(row, index) {
+            const rowData = encodeURIComponent(JSON.stringify(row));
             tableHtml += '<tr>';
+            tableHtml += `<td><button type="button" class="btn btn-sm btn-outline-secondary btn-view-row" data-row='${rowData}' title="查看详情"><i class="bi bi-card-text"></i></button></td>`;
             columns.forEach(function(col) {
                 const value = row[col];
                 const displayValue = value === null || value === undefined
@@ -630,6 +633,12 @@ function renderResults(data) {
 
     tableHtml += '</tbody></table>';
     $('#dataTableWrapper').html(tableHtml);
+
+    // 绑定查看详情按钮事件
+    $('.btn-view-row').on('click', function() {
+        const rowData = JSON.parse(decodeURIComponent($(this).data('row')));
+        showRowDetailModal(rowData);
+    });
 
     bindPaginationEvents();
 }
@@ -670,6 +679,55 @@ function renderPagination(data) {
 
     html += '</span>';
     return html;
+}
+
+// 显示行详情模态框（类似 MySQL 的 \G 格式）
+function showRowDetailModal(rowData) {
+    const columns = currentQueryData ? currentQueryData.columns : Object.keys(rowData);
+
+    let html = '<div class="row-detail-list">';
+    columns.forEach(function(col) {
+        const value = rowData[col];
+        const displayValue = value === null || value === undefined
+            ? '<span class="text-muted fst-italic">NULL</span>'
+            : escapeHtml(String(value));
+        html += `
+            <div class="row-detail-item">
+                <div class="row-detail-key">${escapeHtml(col)}</div>
+                <div class="row-detail-value">${displayValue}</div>
+            </div>
+        `;
+    });
+    html += '</div>';
+
+    // 创建或更新模态框
+    let modal = $('#rowDetailModal');
+    if (modal.length === 0) {
+        const modalHtml = `
+            <div class="modal fade" id="rowDetailModal" tabindex="-1" role="dialog" aria-labelledby="rowDetailModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="rowDetailModalLabel">
+                                <i class="bi bi-card-text"></i> 行详情
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body" id="rowDetailContent" style="max-height: 70vh;"></div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        $('body').append(modalHtml);
+        modal = $('#rowDetailModal');
+    }
+
+    $('#rowDetailContent').html(html);
+    const bsModal = new bootstrap.Modal(modal[0]);
+    bsModal.show();
 }
 
 function bindPaginationEvents() {
