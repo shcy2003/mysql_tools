@@ -213,12 +213,13 @@ def get_table_row_count(connection, database, table_name):
         conn = mysql.connector.connect(**connection_params)
         cursor = conn.cursor(dictionary=True)
         # 使用 INFORMATION_SCHEMA 来获取行数，这样可以利用MySQL的统计信息，不需要扫描全表
-        cursor.execute(f"""
+        # 使用参数化查询防止SQL注入
+        cursor.execute("""
             SELECT TABLE_ROWS
             FROM information_schema.TABLES
-            WHERE TABLE_SCHEMA = '{database}'
-            AND TABLE_NAME = '{table_name}'
-        """)
+            WHERE TABLE_SCHEMA = %s
+            AND TABLE_NAME = %s
+        """, (database, table_name))
         result = cursor.fetchone()
         return result['TABLE_ROWS'] if result and result['TABLE_ROWS'] is not None else 0
     except Error as e:

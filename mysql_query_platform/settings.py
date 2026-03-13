@@ -10,7 +10,8 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-dev-key-change
 
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ['*']
+# 生产环境应通过环境变量配置，不使用通配符
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -100,8 +101,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # 使用自定义用户模型
 AUTH_USER_MODEL = 'accounts.User'
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://pma-self.evegdpre.com',
-    'https://evegdpre.com',
-    'http://127.0.0.1:8000',
-]
+# CSRF可信来源，生产环境应通过环境变量配置
+CSRF_TRUSTED_ORIGINS = os.environ.get(
+    'CSRF_TRUSTED_ORIGINS',
+    'http://127.0.0.1:8000,http://localhost:8000'
+).split(',')

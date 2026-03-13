@@ -342,7 +342,7 @@ def api_query_execute(request):
         limited = False
         if row_count > 10:
             result = result[:10]
-            limited = true
+            limited = True
         
         # 提取列名和行数据
         columns = list(result[0].keys()) if result else []
