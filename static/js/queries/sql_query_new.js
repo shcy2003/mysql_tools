@@ -3,7 +3,7 @@
  */
 
 // 全局状态
-let sqlEditor = null;  // CodeMirror编辑器实例
+let sqlEditor = null;  // Monaco编辑器实例包装对象
 let currentQueryData = null;
 let currentPage = 1;
 let pageSize = 25;
@@ -94,9 +94,19 @@ $(document).ready(function() {
 
     // 监听侧边栏连接状态变化
     window.updateSqlQueryConnection = function(connectionId) {
+        // 当连接改变时，清空表和字段缓存
+        window.currentTables = [];
+        window.currentTableColumns = {};
+        // 只有在已选择数据库时才加载表列表
+        if (window.selectedDatabase) {
+            loadTablesForCompletion(connectionId);
+        }
     };
 
     window.updateSqlQueryDatabase = function(database) {
+        // 当数据库改变时，加载表列表和字段信息
+        loadTablesForCompletion(window.selectedConnectionId);
+        loadColumnsForCompletion(window.selectedConnectionId, database);
     };
 
     window.updateSqlQueryEditor = function(sql, autoExecute) {
@@ -110,100 +120,246 @@ $(document).ready(function() {
     };
 });
 
-// 初始化SQL编辑器（CodeMirror）
+// Monaco Editor 实例和语言服务
+let monacoEditor = null;
+let monaco = null;
+
+// 加载 Monaco Editor
 function initSqlEditor() {
-    const textarea = document.getElementById('sqlEditor');
-
-    // 创建CodeMirror编辑器
-    sqlEditor = CodeMirror.fromTextArea(textarea, {
-        mode: 'text/x-sql',
-        theme: 'monokai',
-        lineNumbers: true,
-        lineWrapping: true,
-        indentUnit: 4,
-        tabSize: 4,
-        indentWithTabs: true,
-        extraKeys: {
-            'Ctrl-Space': 'autocomplete',  // Ctrl+Space 自动提示
-            'Ctrl-Enter': executeQuery,   // Ctrl+Enter 执行查询
-            'Ctrl-/': 'toggleComment',    // Ctrl+/ 注释
-            'Tab': function(cm) {
-                if (cm.state.completionActive) {
-                    // 如果正在自动完成，按Tab键插入建议
-                    CodeMirror.commands.acceptCompletion(cm);
-                } else {
-                    // 否则，插入缩进
-                    cm.replaceSelection('    ', 'end');
-                }
-            }
-        },
-        hintOptions: {
-            completeSingle: false
-        },
-        matchBrackets: true,
-        autoCloseBrackets: true,
-        foldGutter: true,
-        gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter']
-    });
-
-    // 启用语法错误检查
-    enableSyntaxErrorCheck();
-
-    // 设置编辑器大小
-    function resizeSqlEditor() {
-        const editorHeight = 300;
-        sqlEditor.setSize('100%', editorHeight);
+    // 如果已加载则直接返回
+    if (window.monacoInited) {
+        console.log('Monaco already initialized');
+        return;
     }
 
-    // 初始化时设置一次
-    setTimeout(function() {
-        resizeSqlEditor();
-    }, 50);
-
-    // 监听窗口大小变化
-    $(window).on('resize', function() {
-        resizeSqlEditor();
-    });
-
-    // 自定义自动提示
-    CodeMirror.registerHelper('hint', 'sql', function(cm) {
-        const cursor = cm.getCursor();
-        const line = cm.getLine(cursor.line).slice(0, cursor.ch);
-
-        // 获取当前上下文
-        const lastWord = getLastWord(line);
-        const suggestions = [];
-
-        // 收集建议
-        if (lastWord) {
-            // 关键词和函数
-            const filteredKeywords = SQL_KEYWORDS.filter(word =>
-                word.toLowerCase().startsWith(lastWord.toLowerCase())
-            );
-            suggestions.push(...filteredKeywords.map(word => ({
-                text: word,
-                type: 'keyword',
-                displayText: word,
-                className: 'cm-sql-keyword'
-            })));
-
-            const filteredFunctions = SQL_FUNCTIONS.filter(word =>
-                word.toLowerCase().startsWith(lastWord.toLowerCase())
-            );
-            suggestions.push(...filteredFunctions.map(word => ({
-                text: word,
-                type: 'function',
-                displayText: word + '()',
-                className: 'cm-sql-function'
-            })));
-        }
-
-        return {
-            list: suggestions,
-            from: CodeMirror.Pos(cursor.line, cursor.ch - lastWord.length),
-            to: CodeMirror.Pos(cursor.line, cursor.ch)
+    // 使用 @monaco-editor/loader
+    if (window.MonacoEditor && window.MonacoEditor.loader) {
+        window.MonacoEditor.loader.config({
+            paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }
+        });
+        window.MonacoEditor.loader.init().then(function(monacoInstance) {
+            monaco = monacoInstance;
+            window.monacoInited = true;
+            createMonacoEditor();
+        });
+    } else {
+        // 备用方案：直接加载
+        var script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js';
+        script.charset = 'utf-8';
+        script.onload = function() {
+            require.config({
+                paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }
+            });
+            require(['vs/editor/editor.main'], function() {
+                monaco = window.monaco;
+                window.monacoInited = true;
+                createMonacoEditor();
+            });
         };
+        script.onerror = function(e) {
+            console.error('Failed to load Monaco:', e);
+        };
+        document.head.appendChild(script);
+    }
+}
+
+function createMonacoEditor() {
+    // 注册 SQL 语言（使用 Monaco 内置的 SQL 支持）
+    monaco.languages.register({ id: 'sql' });
+
+    // 定义主题
+    monaco.editor.defineTheme('sql-dark', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [],
+        colors: {
+            'editor.background': '#272822',
+        }
     });
+
+    // 注册自定义 SQL 自动补全提供者
+    monaco.languages.registerCompletionItemProvider('sql', {
+        triggerCharacters: [' ', '.', ','],
+        provideCompletionItems: function(model, position) {
+            return provideSqlCompletionItems(model, position);
+        }
+    });
+
+    // 创建编辑器
+    const editorContainer = document.getElementById('monacoEditor');
+    if (!editorContainer) {
+        console.error('Editor container not found');
+        return;
+    }
+
+    monacoEditor = monaco.editor.create(editorContainer, {
+        value: '',
+        language: 'sql',
+        theme: 'sql-dark',
+        minimap: { enabled: false },
+        lineNumbers: 'on',
+        scrollBeyondLastLine: false,
+        automaticLayout: true,
+        fontSize: 14,
+        fontFamily: "'Consolas', 'Monaco', 'Courier New', monospace",
+        tabSize: 4,
+        insertSpaces: true,
+        wordWrap: 'on',
+        contextmenu: true,
+        suggestOnTriggerCharacters: true,
+        quickSuggestions: true,
+        acceptSuggestionOnEnter: 'on',
+        formatOnPaste: true,
+        formatOnType: true,
+        autoClosingBrackets: 'always',
+        autoClosingQuotes: 'always',
+        autoIndent: 'full',
+        renderLineHighlight: 'line',
+        scrollbar: {
+            verticalScrollbarSize: 10,
+            horizontalScrollbarSize: 10
+        }
+    });
+
+    // 暴露给全局
+    sqlEditor = {
+        setValue: function(value) {
+            monacoEditor.setValue(value);
+        },
+        getValue: function() {
+            return monacoEditor.getValue();
+        },
+        focus: function() {
+            monacoEditor.focus();
+        },
+        setCursor: function(pos) {
+            // Monaco 使用 lineNumber 和 column
+            monacoEditor.setPosition({ lineNumber: pos.line || 1, column: pos.ch || 1 });
+        },
+        getCursor: function() {
+            var pos = monacoEditor.getPosition();
+            return { line: pos.lineNumber, ch: pos.column };
+        },
+        replaceRange: function(text, start, end) {
+            var startPos = start.line ? { lineNumber: start.line, column: start.ch || 1 } : { lineNumber: 1, column: 1 };
+            var endPos = end ? { lineNumber: end.line, column: end.ch || 1 } : startPos;
+            var range = new monaco.Range(startPos.lineNumber, startPos.column, endPos.lineNumber, endPos.column);
+            monacoEditor.executeEdits('', [{ range: range, text: text }]);
+        },
+        refresh: function() {
+            monacoEditor.layout();
+        }
+    };
+
+    // 添加键盘快捷键
+    monacoEditor.addAction({
+        id: 'execute-query',
+        label: '执行查询',
+        keybindings: [
+            monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter
+        ],
+        run: function() {
+            executeQuery();
+        }
+    });
+
+    // 监听编辑器内容变化
+    monacoEditor.onDidChangeModelContent(function() {
+        // 可以在这里添加自动保存等功能
+    });
+
+    console.log('Monaco Editor initialized');
+}
+
+// SQL 自动补全提供者
+function provideSqlCompletionItems(model, position) {
+    const suggestions = [];
+    const textUntilPosition = model.getValueInRange({
+        startLineNumber: position.lineNumber,
+        startColumn: 1,
+        endLineNumber: position.lineNumber,
+        endColumn: position.column
+    });
+
+    // 获取当前单词
+    const lastWordMatch = textUntilPosition.match(/[a-zA-Z_0-9]*$/);
+    const lastWord = lastWordMatch ? lastWordMatch[0] : '';
+
+    // 检测是否在 FROM 后面（需要表名补全）
+    const isAfterFrom = /from\s+$/i.test(textUntilPosition.replace(lastWord, ''));
+    // 检测是否在表名后面（需要字段补全）
+    const isAfterTable = /\w+\.$/.test(textUntilPosition.replace(lastWord, ''));
+    // 检测是否在 JOIN 后面
+    const isAfterJoin = /join\s+$/i.test(textUntilPosition.replace(lastWord, ''));
+
+    // 添加 SQL 关键词
+    if (!isAfterFrom && !isAfterTable && !isAfterJoin) {
+        SQL_KEYWORDS.forEach(function(keyword) {
+            if (!lastWord || keyword.toLowerCase().startsWith(lastWord.toLowerCase())) {
+                suggestions.push({
+                    label: keyword,
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: keyword,
+                    detail: '关键词'
+                });
+            }
+        });
+
+        // 添加 SQL 函数
+        SQL_FUNCTIONS.forEach(function(func) {
+            if (!lastWord || func.toLowerCase().startsWith(lastWord.toLowerCase())) {
+                suggestions.push({
+                    label: func,
+                    kind: monaco.languages.CompletionItemKind.Function,
+                    insertText: func + '()',
+                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                    detail: '函数'
+                });
+            }
+        });
+    }
+
+    // 添加表名补全（如果在 FROM 后面）
+    if (isAfterFrom && window.currentTables) {
+        window.currentTables.forEach(function(table) {
+            suggestions.push({
+                label: table,
+                kind: monaco.languages.CompletionItemKind.Class,
+                insertText: table,
+                detail: '表'
+            });
+        });
+    }
+
+    // 添加字段补全（如果在表名.后面）
+    if (isAfterTable && window.currentTableColumns) {
+        const tableName = textUntilPosition.match(/\.(\w*)$/);
+        if (tableName && window.currentTableColumns[tableName[1]]) {
+            window.currentTableColumns[tableName[1]].forEach(function(col) {
+                suggestions.push({
+                    label: col.name,
+                    kind: monaco.languages.CompletionItemKind.Field,
+                    insertText: col.name,
+                    detail: col.type || '字段'
+                });
+            });
+        }
+    }
+
+    // 添加 JOIN 表名补全
+    if (isAfterJoin && window.currentTables) {
+        window.currentTables.forEach(function(table) {
+            suggestions.push({
+                label: table,
+                kind: monaco.languages.CompletionItemKind.Class,
+                insertText: table,
+                detail: '表 (JOIN)'
+            });
+        });
+    }
+
+    return { suggestions: suggestions };
 }
 
 // 获取最后一个单词
@@ -1327,7 +1483,7 @@ function initEditorResizer() {
         editorSection.style.height = newHeight + 'px';
         editorSection.style.flex = 'none';
 
-        // 更新 CodeMirror 编辑器大小
+        // 更新 Monaco 编辑器大小
         if (sqlEditor && sqlEditor.refresh) {
             sqlEditor.refresh();
         }
@@ -1343,7 +1499,7 @@ function initEditorResizer() {
             // 保存高度到 localStorage
             localStorage.setItem('sqlEditorHeight', editorSection.offsetHeight);
 
-            // 刷新 CodeMirror
+            // 刷新 Monaco
             if (sqlEditor && sqlEditor.refresh) {
                 sqlEditor.refresh();
             }
@@ -1519,151 +1675,94 @@ function insertFieldAtCursor(fieldName, tableName) {
 }
 
 // ============================================
-// 语法错误检查功能
+// Monaco Editor 语法检查（使用内置功能）
+// ============================================
+// Monaco Editor 内置基本的 SQL 语法高亮
+// 高级语法检查功能可以后续通过 monaco-sql-languages 扩展
 // ============================================
 
-// 启用语法错误检查
-function enableSyntaxErrorCheck() {
-    if (!sqlEditor) {
+// 用于自动补全的表和字段数据
+window.currentTables = [];
+window.currentTableColumns = {};
+
+// 加载表列表用于自动补全
+function loadTablesForCompletion(connectionId) {
+    if (!connectionId) {
+        window.currentTables = [];
         return;
     }
 
-    // 存储当前的错误标记
-    sqlEditor.state.syntaxErrors = [];
-
-    // 监听编辑器内容变化
-    sqlEditor.on('change', function(cm, changeObj) {
-        // 使用防抖来避免频繁检查
-        if (sqlEditor.state.syntaxCheckTimeout) {
-            clearTimeout(sqlEditor.state.syntaxCheckTimeout);
-        }
-        sqlEditor.state.syntaxCheckTimeout = setTimeout(function() {
-            checkSyntaxErrors();
-        }, 500);
-    });
-
-    // 初始化时检查一次
-    setTimeout(checkSyntaxErrors, 1000);
-}
-
-// 检查SQL语法错误
-function checkSyntaxErrors() {
-    if (!sqlEditor) {
+    // 需要先选择数据库才能获取表列表
+    if (!window.selectedDatabase) {
+        window.currentTables = [];
         return;
     }
 
-    const sql = sqlEditor.getValue();
-    const errors = [];
-
-    // 简单的SQL语法检查规则
-    const lines = sql.split('\n');
-
-    lines.forEach(function(line, lineNum) {
-        const trimmedLine = line.trim();
-
-        // 跳过空行和注释行
-        if (trimmedLine === '' || trimmedLine.startsWith('--')) {
-            return;
-        }
-
-        // 检查基本的语法错误
-        errors.push(...checkLineSyntax(trimmedLine, lineNum, lines));
-    });
-
-    // 显示错误标记
-    displaySyntaxErrors(errors);
-}
-
-// 检查单行SQL的语法
-function checkLineSyntax(line, lineNum, allLines = []) {
-    const errors = [];
-
-    // 检查未闭合的引号
-    const quoteCount = (line.match(/['"]/g) || []).length;
-    if (quoteCount % 2 !== 0) {
-        errors.push({
-            line: lineNum,
-            column: line.length,
-            message: '未闭合的引号'
-        });
-    }
-
-    // 注意：SELECT语句的完整检查需要考虑跨多行情况，暂时禁用单行检查
-    // 后续可以实现更智能的跨多行语法检查
-
-    // 检查未闭合的括号
-    const openParenCount = (line.match(/\(/g) || []).length;
-    const closeParenCount = (line.match(/\)/g) || []).length;
-    if (openParenCount !== closeParenCount) {
-        errors.push({
-            line: lineNum,
-            column: line.length,
-            message: '未闭合的括号'
-        });
-    }
-
-    // 检查常见的SQL关键字拼写错误（暂时禁用，避免误报）
-    // 后续可以实现更精确的拼写检查算法
-    // const commonKeywords = ['SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'INSERT', 'UPDATE', 'DELETE', 'JOIN'];
-
-    return errors;
-}
-
-// 显示语法错误标记
-function displaySyntaxErrors(errors) {
-    if (!sqlEditor) {
-        return;
-    }
-
-    // 清除旧的错误标记
-    if (sqlEditor.state.syntaxErrors) {
-        sqlEditor.state.syntaxErrors.forEach(error => {
-            sqlEditor.removeLineClass(error.line, 'gutter', 'error');
-            sqlEditor.removeLineClass(error.line, 'wrap', 'syntax-error');
-            if (error.widget) {
-                sqlEditor.removeLineWidget(error.widget);
+    $.ajax({
+        url: '/api/connections/' + connectionId + '/tables/',
+        method: 'GET',
+        data: { database: window.selectedDatabase },
+        dataType: 'json',
+        success: function(response) {
+            if (response.code === 0 && response.data) {
+                window.currentTables = response.data;
             }
-        });
-    }
-
-    // 保存新的错误信息
-    sqlEditor.state.syntaxErrors = errors;
-
-    // 显示新的错误标记
-    errors.forEach(error => {
-        // 在行号栏添加错误标记
-        sqlEditor.addLineClass(error.line, 'gutter', 'error');
-        sqlEditor.addLineClass(error.line, 'wrap', 'syntax-error');
-
-        // 添加错误提示小部件
-        const widget = createErrorWidget(error.message);
-        const lineHeight = sqlEditor.getScrollInfo().clientHeight / sqlEditor.lineCount();
-        const widgetElement = sqlEditor.addLineWidget(error.line, widget, {
-            coverGutter: false,
-            noHScroll: true
-        });
-
-        error.widget = widgetElement;
+        },
+        error: function() {
+            window.currentTables = [];
+        }
     });
 }
 
-// 创建错误提示小部件
-function createErrorWidget(message) {
-    const div = document.createElement('div');
-    div.className = 'syntax-error-tooltip';
-    div.textContent = message;
+// 加载字段列表用于自动补全
+function loadColumnsForCompletion(connectionId, database) {
+    if (!connectionId || !database) {
+        window.currentTableColumns = {};
+        return;
+    }
 
-    // 添加样式
-    div.style.backgroundColor = '#dc3545';
-    div.style.color = 'white';
-    div.style.padding = '4px 8px';
-    div.style.borderRadius = '3px';
-    div.style.fontSize = '12px';
-    div.style.whiteSpace = 'nowrap';
-    div.style.maxWidth = '300px';
-    div.style.wordWrap = 'break-word';
-    div.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
-    div.style.marginLeft = '10px';
+    $.ajax({
+        url: '/api/connections/' + connectionId + '/tables/',
+        method: 'GET',
+        data: { database: database },
+        dataType: 'json',
+        success: function(response) {
+            if (response.code === 0 && response.data) {
+                // 整理成表名 -> 字段列表的格式
+                const columnsMap = {};
+                response.data.forEach(function(tableName) {
+                    // 为每个表获取字段信息
+                    loadTableColumns(connectionId, database, tableName, columnsMap);
+                });
+            }
+        },
+        error: function() {
+            window.currentTableColumns = {};
+        }
+    });
+}
 
-    return div;
+// 加载单个表的字段
+function loadTableColumns(connectionId, database, tableName, columnsMap) {
+    $.ajax({
+        url: '/api/connections/' + connectionId + '/columns/',
+        method: 'GET',
+        data: { database: database, table: tableName },
+        dataType: 'json',
+        success: function(response) {
+            if (response.code === 0 && response.data) {
+                // 将字段信息转换为简单格式
+                const simpleColumns = response.data.map(function(col) {
+                    return {
+                        name: col.name,
+                        type: col.type
+                    };
+                });
+                window.currentTableColumns[tableName] = simpleColumns;
+            }
+        },
+        error: function() {
+            // 忽略错误
+        }
+    });
 }

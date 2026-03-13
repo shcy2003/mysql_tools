@@ -52,6 +52,12 @@
 
     // 检查是否在SQL查询页面
     function isSqlQueryPage() {
+        // 检查新的 Monaco Editor 容器
+        const monacoEditor = document.getElementById('monacoEditor');
+        if (monacoEditor !== null) {
+            return true;
+        }
+        // 兼容旧的 textarea 编辑器
         const sqlEditor = document.getElementById('sqlEditor');
         return sqlEditor !== null;
     }

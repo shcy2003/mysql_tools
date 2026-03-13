@@ -6,10 +6,6 @@
 {% block page_title_block %}{% endblock %}
 
 {% block extra_css %}
-<!-- CodeMirror CSS for SQL syntax highlighting -->
-<link rel="stylesheet" href="{% static 'js/codemirror/codemirror.min.css' %}">
-<link rel="stylesheet" href="{% static 'js/codemirror/monokai.min.css' %}">
-<link rel="stylesheet" href="{% static 'js/codemirror/show-hint.min.css' %}">
 <style>
 .sql-query-container {
     height: calc(100vh - 20px);
@@ -645,9 +641,8 @@
                         <i class="bi bi-code-square"></i> SQL编辑器
                     </label>
                 </div>
-                <div class="sql-textarea-wrapper">
-                    <textarea class="sql-textarea" id="sqlEditor" placeholder="输入SQL查询...
-示例: SELECT * FROM users WHERE status = 'active' LIMIT 10"></textarea>
+                <div class="sql-textarea-wrapper" style="border: 1px solid #ced4da; border-radius: 4px; overflow: hidden;">
+                    <div id="monacoEditor" style="height: 100%; min-height: 450px;"></div>
                 </div>
                 <div class="action-buttons mt-2">
                     <button type="button" class="btn btn-primary btn-sm" id="executeBtn">
@@ -847,11 +842,8 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- CodeMirror JS for SQL syntax highlighting -->
-<script src="{% static 'js/codemirror/codemirror.min.js' %}"></script>
-<script src="{% static 'js/codemirror/sql.min.js' %}"></script>
-<script src="{% static 'js/codemirror/show-hint.min.js' %}"></script>
-<script src="{% static 'js/codemirror/sql-hint.min.js' %}"></script>
+<!-- Monaco Editor loader -->
+<script src="https://cdn.jsdelivr.net/npm/@monaco-editor/loader@1.4.0/dist/loader.min.js"></script>
 <!-- SQL Formatter -->
 <script src="{% static 'js/sql-formatter.min.js' %}"></script>
 <script src="{% static 'js/queries/sql_query_new.js' %}"></script>
