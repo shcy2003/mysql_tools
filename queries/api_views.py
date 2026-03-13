@@ -181,20 +181,30 @@ def api_query_data(request):
         elif page_size > 100:
             page_size = 100  # 最大限制
         
-        # 获取连接
+        # 获取连接（管理员可以访问所有连接，普通用户只能访问自己创建的）
         try:
-            connection = MySQLConnection.objects.get(
-                id=connection_id,
-                created_by=request.user
-            )
+            if request.user.role == 'admin':
+                connection = MySQLConnection.objects.get(id=connection_id)
+            else:
+                connection = MySQLConnection.objects.get(
+                    id=connection_id,
+                    created_by=request.user
+                )
         except MySQLConnection.DoesNotExist:
             return JsonResponse({
                 "code": 404,
                 "message": "数据库连接不存在或无权限访问"
             }, status=404)
-        
+
+        # 获取database参数
+        database = request.GET.get('database') if request.method == "GET" else data.get('database')
+
         # 构建查询
         connection_params = connection.get_connection_params()
+
+        # 如果指定了database参数，使用它覆盖连接配置
+        if database:
+            connection_params['database'] = database
         
         # 处理列
         if columns == '*':

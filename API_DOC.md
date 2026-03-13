@@ -166,6 +166,7 @@ POST /api/queries/data/
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | connection_id | int | 是 | 连接 ID |
+| database | string | 是 | 数据库名称 |
 | table | string | 是 | 表名 |
 | columns | string | 否 | 列名（逗号分隔），默认 * |
 | page | int | 否 | 页码，默认 1 |
@@ -177,6 +178,7 @@ POST /api/queries/data/
 ```json
 {
     "connection_id": 1,
+    "database": "test_db",
     "table": "users",
     "columns": "id,name,email",
     "page": 1,
@@ -260,6 +262,160 @@ POST /api/queries/execute/
 - 只支持 SELECT 查询
 - 如果查询没有 LIMIT，自动添加 LIMIT 10
 - `limited` 字段表示是否自动添加了 LIMIT
+
+---
+
+#### 1.4 获取字段列表
+
+```
+GET /api/connections/<connection_id>/columns/?database=<database_name>&table=<table_name>
+```
+
+**认证**: 需要登录
+
+**参数**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| connection_id | int | 是 | 连接 ID |
+| database | string | 是 | 数据库名称 |
+| table | string | 是 | 表名称 |
+
+**响应示例**:
+```json
+{
+    "code": 0,
+    "message": "success",
+    "data": [
+        {"name": "id", "type": "int", "nullable": "NO", "key": "PRI", "default": null, "extra": "auto_increment"},
+        {"name": "username", "type": "varchar(50)", "nullable": "NO", "key": "", "default": null, "extra": ""}
+    ]
+}
+```
+
+---
+
+#### 1.5 测试数据库连接
+
+```
+POST /api/connections/test/
+```
+
+**认证**: 需要登录
+
+**请求体**:
+```json
+{
+    "host": "localhost",
+    "port": 3306,
+    "username": "root",
+    "password": "your_password"
+}
+```
+
+**响应示例**:
+```json
+{
+    "code": 0,
+    "message": "连接成功",
+    "data": {}
+}
+```
+
+---
+
+#### 2.3 获取表结构
+
+```
+GET /api/queries/table_structure/?connection_id=<id>&database=<db>&table=<table>
+```
+
+**认证**: 需要登录
+
+**参数**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| connection_id | int | 是 | 连接 ID |
+| database | string | 是 | 数据库名称 |
+| table | string | 是 | 表名称 |
+
+**响应示例**:
+```json
+{
+    "code": 0,
+    "message": "success",
+    "data": [
+        {"Field": "id", "Type": "int", "Null": "NO", "Key": "PRI", "Default": null, "Extra": "auto_increment"}
+    ]
+}
+```
+
+---
+
+#### 2.4 获取表行数
+
+```
+GET /api/queries/table_row_count/?connection_id=<id>&database=<db>&table=<table>
+```
+
+**认证**: 需要登录
+
+**参数**:
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| connection_id | int | 是 | 连接 ID |
+| database | string | 是 | 数据库名称 |
+| table | string | 是 | 表名称 |
+
+**响应示例**:
+```json
+{
+    "code": 0,
+    "message": "success",
+    "data": {"row_count": 1000}
+}
+```
+
+---
+
+#### 2.5 获取保存的查询
+
+```
+GET /api/queries/saved/
+```
+
+**认证**: 需要登录
+
+**响应示例**:
+```json
+{
+    "code": 0,
+    "message": "success",
+    "data": [
+        {"id": 1, "name": "我的查询", "sql": "SELECT * FROM users", "connection_id": 1, "database": "test", "created_at": "2026-01-01 12:00:00"}
+    ]
+}
+```
+
+---
+
+#### 2.6 导出 Excel
+
+```
+POST /api/queries/export_excel/
+```
+
+**认证**: 需要登录
+
+**请求体**:
+```json
+{
+    "connection_id": 1,
+    "database": "test_db",
+    "sql": "SELECT * FROM users LIMIT 1000"
+}
+```
+
+**响应**: 返回 Excel 文件 (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet)
 
 ---
 
