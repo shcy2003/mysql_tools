@@ -132,10 +132,10 @@ function initSqlEditor() {
         return;
     }
 
-    // 使用 @monaco-editor/loader
+    // 使用本地 @monaco-editor/loader
     if (window.MonacoEditor && window.MonacoEditor.loader) {
         window.MonacoEditor.loader.config({
-            paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }
+            paths: { vs: '/static/js/monaco/vs' }
         });
         window.MonacoEditor.loader.init().then(function(monacoInstance) {
             monaco = monacoInstance;
@@ -143,13 +143,13 @@ function initSqlEditor() {
             createMonacoEditor();
         });
     } else {
-        // 备用方案：直接加载
+        // 备用方案：直接加载本地loader
         var script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs/loader.js';
+        script.src = '/static/js/monaco/vs/loader.js';
         script.charset = 'utf-8';
         script.onload = function() {
             require.config({
-                paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.44.0/min/vs' }
+                paths: { vs: '/static/js/monaco/vs' }
             });
             require(['vs/editor/editor.main'], function() {
                 monaco = window.monaco;
