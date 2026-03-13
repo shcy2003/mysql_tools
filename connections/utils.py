@@ -22,7 +22,7 @@ def test_mysql_connection(connection_params):
         connection = mysql.connector.connect(
             host=connection_params['host'],
             port=connection_params['port'],
-            database=connection_params['database'],
+            database=connection_params.get('database'),
             user=connection_params['user'],
             password=connection_params['password']
         )

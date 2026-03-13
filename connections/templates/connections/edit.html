@@ -90,14 +90,6 @@
 
                     <div class="row mb-3">
                         <div class="col-md-12">
-                            <label for="database" class="form-label">{{ form.database.label }}</label>
-                            <input type="text" class="form-control" id="database" name="database" value="{{ form.database.value|default:'' }}"
-                                   placeholder="请输入数据库名" required>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-12">
                             <label for="username" class="form-label">{{ form.username.label }}</label>
                             <input type="text" class="form-control" id="username" name="username" value="{{ form.username.value|default:'' }}"
                                    placeholder="请输入用户名" required>
@@ -176,14 +168,13 @@
             // 获取表单数据
             var host = $('#host').val();
             var port = $('#port').val();
-            var database = $('#database').val();
             var username = $('#username').val();
             var password = $('#password').val();
 
             // 验证必填字段
-            if (!host || !port || !database || !username) {
+            if (!host || !port || !username) {
                 resultDiv.removeClass('success').addClass('error').show();
-                resultDiv.html('<i class="bi bi-exclamation-triangle"></i> 请填写完整的主机、端口、数据库和用户名');
+                resultDiv.html('<i class="bi bi-exclamation-triangle"></i> 请填写完整的主机、端口和用户名');
                 return;
             }
 
@@ -199,7 +190,6 @@
                 data: JSON.stringify({
                     host: host,
                     port: parseInt(port),
-                    database: database,
                     username: username,
                     password: password,
                     connection_id: $('#connection-id').val()

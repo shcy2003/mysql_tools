@@ -14,7 +14,7 @@ class MySQLConnectionForm(forms.ModelForm):
 
     class Meta:
         model = MySQLConnection
-        fields = ['name', 'host', 'port', 'database', 'username', 'password', 'environment']
+        fields = ['name', 'host', 'port', 'username', 'password', 'environment']
         widgets = {
             'name': forms.TextInput(
                 attrs={
@@ -34,12 +34,6 @@ class MySQLConnectionForm(forms.ModelForm):
                     'placeholder': '请输入端口'
                 }
             ),
-            'database': forms.TextInput(
-                attrs={
-                    'class': 'form-control',
-                    'placeholder': '请输入数据库名称'
-                }
-            ),
             'username': forms.TextInput(
                 attrs={
                     'class': 'form-control',
@@ -57,7 +51,6 @@ class MySQLConnectionForm(forms.ModelForm):
             'name': '连接名称',
             'host': '主机地址',
             'port': '端口',
-            'database': '数据库名称',
             'username': '用户名',
             'password': '密码',
             'environment': '所属环境',

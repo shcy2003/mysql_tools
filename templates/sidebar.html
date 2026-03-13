@@ -42,14 +42,6 @@
                         </div>
                     </div>
                 </li>
-                {% if user.role == 'admin' %}
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'connections:connection_list' %}">
-                            <i class="bi bi-gear"></i>
-                            连接管理
-                        </a>
-                    </li>
-                {% endif %}
                 <li class="nav-item">
                     <a class="nav-link d-flex align-items-center gap-2" href="{% url 'queries:query_history' %}">
                         <i class="bi bi-clock-history"></i>
@@ -63,6 +55,12 @@
                     </a>
                 </li>
                 {% if user.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-2" href="{% url 'connections:connection_list' %}">
+                            <i class="bi bi-gear"></i>
+                            连接管理
+                        </a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center gap-2" href="{% url 'environments:environment_list' %}">
                             <i class="bi bi-layers"></i>

@@ -49,7 +49,7 @@ def get_connection_pool(connection_params, pool_size=20):
                 'user': connection_params.get('user', ''),
                 'password': connection_params.get('password', ''),
             }
-            
+
             # 如果指定了数据库，添加到配置
             if connection_params.get('database'):
                 pool_config['database'] = connection_params['database']

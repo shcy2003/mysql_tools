@@ -377,7 +377,6 @@ def api_test_connection(request):
     {
         "host": "localhost",
         "port": 3306,
-        "database": "test_db",
         "username": "root",
         "password": "password"
     }
@@ -394,7 +393,6 @@ def api_test_connection(request):
         # 提取连接参数
         host = body.get('host')
         port = body.get('port')
-        database = body.get('database')
         username = body.get('username')
         password = body.get('password')
 
@@ -403,16 +401,13 @@ def api_test_connection(request):
             return api_response(code=400, message='请输入主机地址')
         if not port:
             return api_response(code=400, message='请输入端口')
-        if not database:
-            return api_response(code=400, message='请输入数据库名称')
         if not username:
             return api_response(code=400, message='请输入用户名')
 
-        # 构建连接参数
+        # 构建连接参数（不指定数据库，因为访问什么数据库由账号权限决定）
         connection_params = {
             'host': host,
             'port': int(port) if port else 3306,
-            'database': database,
             'user': username,
             'password': password or ''
         }
